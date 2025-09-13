@@ -12,14 +12,22 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function Header() {
+  const currentTime = new Date().getHours();
+  const greeting = currentTime < 12 ? "Good Morning" : currentTime < 17 ? "Good Afternoon" : "Good Evening";
+
   return (
     <header className="bg-card border-b border-border px-6 py-4 shadow-soft">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4 flex-1">
-          <div className="relative max-w-md flex-1">
+          <div>
+            <h2 className="text-xl font-bold text-foreground">Hello Robert 👋</h2>
+            <p className="text-sm text-muted-foreground">{greeting}</p>
+          </div>
+          
+          <div className="relative max-w-md ml-auto">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              placeholder="Search doctors, patients, appointments..."
+              placeholder="Search..."
               className="pl-10 bg-background"
             />
           </div>
