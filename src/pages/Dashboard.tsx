@@ -1,8 +1,5 @@
 import { DashboardStats } from "@/components/admin/DashboardStats";
-import { TrafficOverview } from "@/components/admin/TrafficOverview";
-import { PatientTrends } from "@/components/admin/PatientTrends";
-import { NewDoctors } from "@/components/admin/NewDoctors";
-import { AppointmentOverview } from "@/components/admin/AppointmentOverview";
+import { RecentActivity } from "@/components/admin/RecentActivity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, UserPlus, FileText, Calendar, BarChart3, TrendingUp } from "lucide-react";
@@ -43,20 +40,76 @@ export default function Dashboard() {
 
       {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Traffic Overview - Full Width */}
-        <div className="lg:col-span-2">
-          <TrafficOverview />
-        </div>
+        {/* Quick Actions */}
+        <Card className="shadow-soft">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Quick Actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button className="w-full justify-start" variant="gradient">
+              <UserPlus className="h-4 w-4" />
+              Add New Doctor
+            </Button>
+            <Button className="w-full justify-start" variant="outline">
+              <Users className="h-4 w-4" />
+              Manage Patients
+            </Button>
+            <Button className="w-full justify-start" variant="outline">
+              <FileText className="h-4 w-4" />
+              Review Articles
+            </Button>
+            <Button className="w-full justify-start" variant="outline">
+              <Calendar className="h-4 w-4" />
+              Schedule Appointment
+            </Button>
+          </CardContent>
+        </Card>
 
-        {/* New Doctors */}
-        <NewDoctors />
+        {/* System Overview */}
+        <Card className="shadow-soft">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              System Overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Server Health</span>
+                <span className="text-sm font-medium text-success">98.5%</span>
+              </div>
+              <div className="w-full bg-secondary rounded-full h-2">
+                <div className="bg-gradient-primary h-2 rounded-full w-[98.5%]"></div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Database Usage</span>
+                <span className="text-sm font-medium text-primary">72.3%</span>
+              </div>
+              <div className="w-full bg-secondary rounded-full h-2">
+                <div className="bg-gradient-primary h-2 rounded-full w-[72.3%]"></div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Active Sessions</span>
+                <span className="text-sm font-medium text-warning">1,247</span>
+              </div>
+              <div className="w-full bg-secondary rounded-full h-2">
+                <div className="bg-warning h-2 rounded-full w-[65%]"></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Activity */}
+        <RecentActivity />
       </div>
-
-      {/* Patient Trends */}
-      <PatientTrends />
-
-      {/* Appointment Overview */}
-      <AppointmentOverview />
     </div>
   );
 }
