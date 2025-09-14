@@ -8,6 +8,12 @@ import Dashboard from "./pages/Dashboard";
 import Doctors from "./pages/Doctors";
 import Patients from "./pages/Patients";
 import Articles from "./pages/Articles";
+import SuspendedUsers from "./pages/SuspendedUsers";
+import AppointmentsList from "./pages/AppointmentsList";
+import ChatScreen from "./pages/ChatScreen";
+import VideoCallScreen from "./pages/VideoCallScreen";
+import NotificationsScreen from "./pages/NotificationsScreen";
+import SettingsScreen from "./pages/SettingsScreen";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,12 +30,16 @@ const App = () => (
             <Route path="doctors" element={<Doctors />} />
             <Route path="patients" element={<Patients />} />
             <Route path="articles" element={<Articles />} />
-            <Route path="suspended" element={<Dashboard />} />
-            <Route path="appointments" element={<Dashboard />} />
-            <Route path="chat" element={<Dashboard />} />
-            <Route path="video" element={<Dashboard />} />
-            <Route path="notifications" element={<Dashboard />} />
-            <Route path="settings" element={<Dashboard />} />
+            <Route path="suspended" element={<SuspendedUsers />} />
+            <Route path="appointments" element={<AppointmentsList />} />
+            <Route path="payroll" element={<Dashboard />} />
+            <Route path="feedback" element={<Dashboard />} />
+            <Route path="candidates" element={<Dashboard />} />
+            <Route path="activity" element={<Dashboard />} />
+            <Route path="chat" element={<ChatScreen />} />
+            <Route path="video" element={<VideoCallScreen />} />
+            <Route path="notifications" element={<NotificationsScreen />} />
+            <Route path="settings" element={<SettingsScreen />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
