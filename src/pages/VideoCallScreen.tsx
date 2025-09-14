@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Mic, 
   MicOff, 
@@ -12,7 +15,11 @@ import {
   Settings,
   Monitor,
   Volume2,
-  MoreVertical
+  MoreVertical,
+  Send,
+  ArrowLeft,
+  Maximize,
+  Minimize
 } from "lucide-react";
 
 const participants = [
@@ -54,29 +61,106 @@ const participants = [
   }
 ];
 
+const chatMessages = [
+  { id: 1, sender: "Dr. Sarah Wilson", message: "Good morning everyone!", time: "9:30 AM" },
+  { id: 2, sender: "Dr. Mike Johnson", message: "Ready to discuss the new protocols", time: "9:32 AM" },
+  { id: 3, sender: "Dr. Emily Chen", message: "I have some updates on the pediatric guidelines", time: "9:35 AM" },
+];
+
 export default function VideoCallScreen() {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [showParticipants, setShowParticipants] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [chatMessage, setChatMessage] = useState("");
+  const [messages, setMessages] = useState(chatMessages);
+  const [callDuration, setCallDuration] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCallDuration(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const sendChatMessage = () => {
+    if (chatMessage.trim()) {
+      const newMessage = {
+        id: messages.length + 1,
+        sender: "You",
+        message: chatMessage,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages([...messages, newMessage]);
+      setChatMessage("");
+    }
+  };
+
+  const endCall = () => {
+    window.location.href = "/chat";
+  };
 
   return (
-    <div className="h-[calc(100vh-8rem)] bg-gray-900 rounded-lg overflow-hidden relative">
-      {/* Main Video Area */}
-      <div className="h-full relative">
-        {/* Featured Speaker */}
-        <div className="h-3/4 relative bg-gray-800 flex items-center justify-center">
-          <div className="w-32 h-32 rounded-full bg-gradient-primary flex items-center justify-center text-white text-4xl font-bold">
-            SW
+    <div className={`${isFullscreen ? 'fixed inset-0 z-50' : 'h-[calc(100vh-8rem)]'} bg-gray-900 rounded-lg overflow-hidden relative`}>
+      {/* Header Bar */}
+      <div className="absolute top-0 left-0 right-0 bg-black/50 text-white p-4 flex justify-between items-center z-20">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-white hover:bg-white/20"
+            onClick={() => window.location.href = "/chat"}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h3 className="font-semibold">Weekly Staff Meeting</h3>
+            <p className="text-sm opacity-75">Meeting ID: 123-456-789 • {formatDuration(callDuration)}</p>
           </div>
-          <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1 rounded-lg">
-            <span className="text-sm font-medium">Dr. Sarah Wilson</span>
-            <span className="text-xs ml-2 opacity-75">Host</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-white hover:bg-white/20"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+          >
+            {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+          </Button>
+        </div>
+      </div>
+      {/* Main Video Area */}
+      <div className="h-full relative pt-16">
+        {/* Featured Speaker */}
+        <div className="h-3/4 relative bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+          <div className="relative">
+            <div className="w-40 h-40 rounded-full bg-gradient-primary flex items-center justify-center text-white text-5xl font-bold shadow-2xl">
+              SW
+            </div>
+            <div className="absolute -bottom-2 -right-2">
+              <div className="bg-success rounded-full p-2">
+                <Mic className="h-4 w-4 text-white" />
+              </div>
+            </div>
+          </div>
+          <div className="absolute bottom-6 left-6 bg-black/70 text-white px-4 py-2 rounded-lg backdrop-blur-sm">
+            <span className="text-lg font-semibold">Dr. Sarah Wilson</span>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge className="bg-primary text-primary-foreground text-xs">Host</Badge>
+              <span className="text-sm opacity-75">Speaking</span>
+            </div>
           </div>
           {/* Host Controls */}
-          <div className="absolute top-4 right-4 flex gap-2">
-            <Button size="sm" variant="outline" className="bg-black/50 border-white/20 text-white">
-              <Monitor className="h-4 w-4 mr-1" />
+          <div className="absolute top-6 right-6 flex gap-2">
+            <Button size="sm" variant="outline" className="bg-black/50 border-white/20 text-white hover:bg-black/70">
+              <Monitor className="h-4 w-4 mr-2" />
               Share Screen
             </Button>
           </div>
@@ -112,11 +196,11 @@ export default function VideoCallScreen() {
         </div>
 
         {/* Controls Bar */}
-        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-black/80 rounded-full px-6 py-3 flex items-center gap-4">
+        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-black/90 rounded-full px-6 py-3 flex items-center gap-3 backdrop-blur-sm shadow-xl">
           <Button
             onClick={() => setIsMuted(!isMuted)}
             size="icon"
-            className={`rounded-full ${isMuted ? "bg-red-500 hover:bg-red-600" : "bg-gray-600 hover:bg-gray-700"}`}
+            className={`rounded-full transition-all ${isMuted ? "bg-red-500 hover:bg-red-600" : "bg-gray-600 hover:bg-gray-700"}`}
           >
             {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
           </Button>
@@ -124,7 +208,7 @@ export default function VideoCallScreen() {
           <Button
             onClick={() => setIsVideoOn(!isVideoOn)}
             size="icon"
-            className={`rounded-full ${!isVideoOn ? "bg-red-500 hover:bg-red-600" : "bg-gray-600 hover:bg-gray-700"}`}
+            className={`rounded-full transition-all ${!isVideoOn ? "bg-red-500 hover:bg-red-600" : "bg-gray-600 hover:bg-gray-700"}`}
           >
             {isVideoOn ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
           </Button>
@@ -132,7 +216,7 @@ export default function VideoCallScreen() {
           <Button
             onClick={() => setShowParticipants(!showParticipants)}
             size="icon"
-            className="rounded-full bg-gray-600 hover:bg-gray-700"
+            className={`rounded-full transition-all ${showParticipants ? "bg-primary" : "bg-gray-600 hover:bg-gray-700"}`}
           >
             <Users className="h-5 w-5" />
           </Button>
@@ -140,30 +224,27 @@ export default function VideoCallScreen() {
           <Button
             onClick={() => setShowChat(!showChat)}
             size="icon"
-            className="rounded-full bg-gray-600 hover:bg-gray-700"
+            className={`rounded-full transition-all ${showChat ? "bg-primary" : "bg-gray-600 hover:bg-gray-700"}`}
           >
             <MessageSquare className="h-5 w-5" />
           </Button>
 
           <Button
             size="icon"
-            className="rounded-full bg-gray-600 hover:bg-gray-700"
+            className="rounded-full bg-gray-600 hover:bg-gray-700 transition-all"
           >
             <Settings className="h-5 w-5" />
           </Button>
 
+          <div className="w-px h-6 bg-gray-500 mx-1"></div>
+
           <Button
+            onClick={endCall}
             size="icon"
-            className="rounded-full bg-red-500 hover:bg-red-600"
+            className="rounded-full bg-red-500 hover:bg-red-600 transition-all shadow-lg"
           >
             <Phone className="h-5 w-5 transform rotate-[135deg]" />
           </Button>
-        </div>
-
-        {/* Meeting Info */}
-        <div className="absolute top-4 left-4 bg-black/50 text-white px-4 py-2 rounded-lg">
-          <h3 className="font-medium">Weekly Staff Meeting</h3>
-          <p className="text-sm opacity-75">Meeting ID: 123-456-789</p>
         </div>
 
         {/* Participants Panel */}
@@ -199,30 +280,35 @@ export default function VideoCallScreen() {
 
         {/* Chat Panel */}
         {showChat && (
-          <div className="absolute right-4 top-4 bottom-20 w-80 bg-white rounded-lg shadow-lg flex flex-col">
-            <div className="p-4 border-b">
+          <div className="absolute right-4 top-20 bottom-20 w-80 bg-white rounded-lg shadow-xl flex flex-col border">
+            <div className="p-4 border-b bg-gradient-to-r from-primary/5 to-primary/10">
               <h3 className="font-semibold">Meeting Chat</h3>
             </div>
-            <div className="flex-1 p-4 space-y-3 overflow-y-auto">
-              <div className="text-sm">
-                <p className="font-medium text-primary">Dr. Sarah Wilson</p>
-                <p className="text-muted-foreground">Good morning everyone!</p>
-                <p className="text-xs text-muted-foreground">9:30 AM</p>
+            <ScrollArea className="flex-1 p-4">
+              <div className="space-y-3">
+                {messages.map((message) => (
+                  <div key={message.id} className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-primary text-sm">{message.sender}</span>
+                      <span className="text-xs text-muted-foreground">{message.time}</span>
+                    </div>
+                    <p className="text-sm text-foreground pl-2 border-l-2 border-primary/20">{message.message}</p>
+                  </div>
+                ))}
               </div>
-              <div className="text-sm">
-                <p className="font-medium text-primary">Dr. Mike Johnson</p>
-                <p className="text-muted-foreground">Ready to discuss the new protocols</p>
-                <p className="text-xs text-muted-foreground">9:32 AM</p>
-              </div>
-            </div>
-            <div className="p-4 border-t">
+            </ScrollArea>
+            <div className="p-4 border-t bg-background">
               <div className="flex gap-2">
-                <input
-                  type="text"
+                <Input
+                  value={chatMessage}
+                  onChange={(e) => setChatMessage(e.target.value)}
                   placeholder="Type a message..."
-                  className="flex-1 px-3 py-2 border rounded-lg text-sm"
+                  className="text-sm"
+                  onKeyPress={(e) => e.key === "Enter" && sendChatMessage()}
                 />
-                <Button size="sm">Send</Button>
+                <Button size="sm" onClick={sendChatMessage} className="bg-primary">
+                  <Send className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </div>
