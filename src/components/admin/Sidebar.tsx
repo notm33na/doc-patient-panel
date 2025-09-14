@@ -3,28 +3,27 @@ import {
   LayoutDashboard, 
   Users, 
   UserCheck, 
-  UserX, 
   FileText, 
   Calendar, 
-  MessageCircle, 
-  Video, 
   Settings, 
-  Bell,
   Heart,
-  Activity
+  Activity,
+  CreditCard,
+  BarChart3,
+  UserPlus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Doctors", href: "/doctors", icon: UserCheck },
-  { name: "Patients", href: "/patients", icon: Users },
-  { name: "Suspended Users", href: "/suspended", icon: UserX },
-  { name: "Articles", href: "/articles", icon: FileText },
-  { name: "Appointments", href: "/appointments", icon: Calendar },
-  { name: "Chat", href: "/chat", icon: MessageCircle },
-  { name: "Video Calls", href: "/video", icon: Video },
-  { name: "Notifications", href: "/notifications", icon: Bell },
+  { name: "All Doctors", href: "/doctors", icon: UserCheck },
+  { name: "All Patients", href: "/patients", icon: Users },
+  { name: "All Appointments", href: "/appointments", icon: Calendar },
+  { name: "Payroll", href: "/payroll", icon: CreditCard },
+  { name: "Feedback Analysis", href: "/feedback", icon: BarChart3 },
+  { name: "Candidates", href: "/candidates", icon: UserPlus },
+  { name: "Publications", href: "/articles", icon: FileText },
+  { name: "Admin Activity", href: "/activity", icon: Activity },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

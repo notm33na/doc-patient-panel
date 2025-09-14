@@ -1,38 +1,42 @@
-import { Users, UserCheck, Calendar, FileText, TrendingUp, AlertTriangle } from "lucide-react";
+import { Users, UserCheck, Calendar, FileText, TrendingUp, TrendingDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const stats = [
   {
-    title: "Total Doctors",
-    value: "124",
-    change: "+12%",
+    title: "Total Users",
+    value: "500",
+    change: "+1%",
     trend: "up",
+    icon: Users,
+    color: "text-primary",
+    updateDate: "July 16, 2023"
+  },
+  {
+    title: "Total Appointments", 
+    value: "1050",
+    change: "+4%",
+    trend: "up",
+    icon: Calendar,
+    color: "text-success",
+    updateDate: "July 16, 2023"
+  },
+  {
+    title: "Total Doctors",
+    value: "75",
+    change: "-8%",
+    trend: "down", 
     icon: UserCheck,
-    color: "text-primary"
+    color: "text-destructive",
+    updateDate: "July 16, 2023"
   },
   {
     title: "Total Patients",
-    value: "2,847",
-    change: "+8%",
+    value: "450",
+    change: "+4%",
     trend: "up",
-    icon: Users,
-    color: "text-success"
-  },
-  {
-    title: "Today's Appointments",
-    value: "68",
-    change: "+5%",
-    trend: "up",
-    icon: Calendar,
-    color: "text-warning"
-  },
-  {
-    title: "Pending Articles",
-    value: "12",
-    change: "-3%",
-    trend: "down",
     icon: FileText,
-    color: "text-destructive"
+    color: "text-warning",
+    updateDate: "July 16, 2023"
   }
 ];
 
@@ -49,16 +53,20 @@ export function DashboardStats() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stat.value}</div>
-            <div className="flex items-center gap-1 text-xs">
-              {stat.trend === "up" ? (
-                <TrendingUp className="h-3 w-3 text-success" />
-              ) : (
-                <AlertTriangle className="h-3 w-3 text-destructive" />
-              )}
-              <span className={stat.trend === "up" ? "text-success" : "text-destructive"}>
-                {stat.change}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1 text-xs">
+                {stat.trend === "up" ? (
+                  <TrendingUp className="h-3 w-3 text-success" />
+                ) : (
+                  <TrendingDown className="h-3 w-3 text-destructive" />
+                )}
+                <span className={stat.trend === "up" ? "text-success" : "text-destructive"}>
+                  {stat.change}
+                </span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                Update: {stat.updateDate}
               </span>
-              <span className="text-muted-foreground">from last month</span>
             </div>
           </CardContent>
         </Card>
