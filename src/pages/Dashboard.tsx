@@ -25,16 +25,7 @@ export default function Dashboard() {
           <p className="text-white/90 mb-6">
             Monitor and manage your healthcare platform with ease. Check system health and user activities.
           </p>
-          <div className="flex gap-4">
-            <Button variant="secondary" className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-              <UserPlus className="h-4 w-4" />
-              Add New Doctor
-            </Button>
-            <Button variant="outline" className="border-white/30 text-white hover:bg-white/10">
-              <BarChart3 className="h-4 w-4" />
-              View Analytics
-            </Button>
-          </div>
+          
         </div>
       </div>
 

@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useNavigate } from "react-router-dom";
+
 import { 
   Search, 
   Download, 
@@ -110,6 +112,7 @@ const stats = [
 ];
 
 export default function TransactionLog() {
+  const navigate = useNavigate(); 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -144,14 +147,11 @@ export default function TransactionLog() {
           <p className="text-muted-foreground">Monitor all payment transactions between patients and doctors</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
-          <Button className="gap-2">
-            <Filter className="h-4 w-4" />
-            Generate Report
-          </Button>
+          
+          <Button className="gap-2" onClick={() => navigate("/generate-report")}>
+  <Filter className="h-4 w-4" />
+  Generate Report
+</Button>
         </div>
       </div>
 

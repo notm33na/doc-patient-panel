@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const appointments = [
   {
@@ -76,13 +77,20 @@ const getStatusColor = (status: string) => {
 };
 
 export function AppointmentOverview() {
+    const navigate = useNavigate();
+  
   return (
     <Card className="shadow-soft">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-base">Appointment Overview</CardTitle>
-        <Button variant="ghost" size="sm" className="text-primary">
-          View All
-        </Button>
+        <Button
+        variant="ghost"
+        size="sm"
+        className="text-primary"
+        onClick={() => navigate("/appointments")}
+      >
+        View All
+      </Button>
       </CardHeader>
       <CardContent>
         <div className="space-y-1">

@@ -19,6 +19,15 @@ import FeedbackAnalysis from "./pages/FeedbackAnalysis";
 import Candidates from "./pages/Candidates";
 import AdminActivity from "./pages/AdminActivity";
 import NotFound from "./pages/NotFound";
+import ExportLog from "./pages/ExportLog";
+import SecurityReport from "./pages/SecurityReport";
+import ViewAppointment from "./pages/ViewAppointment";
+import EditAppointment from "./pages/EditAppointment";
+import UploadArticle from "./pages/UploadArticles";
+import ExportList from "./pages/ExportList";
+import AddCandidate from "./pages/AddCandidate";
+import ReviewCandidate from "./pages/ReviewCandidate";
+import GenerateReport from "./pages/GenerateReport";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +53,19 @@ const App = () => (
             <Route path="video" element={<VideoCallScreen />} />
             <Route path="notifications" element={<NotificationsScreen />} />
             <Route path="settings" element={<SettingsScreen />} />
+            <Route path="/export-log" element={<ExportLog />} />
+            <Route path="/security-report" element={<SecurityReport />} />
+            <Route path="/export-list" element={<ExportList />} />
+            <Route path="/add-candidate" element={<AddCandidate />} />
+            <Route path="/review/:id" element={<ReviewCandidate />} />
+            <Route path="/generate-report" element={<GenerateReport />} />
+<Route path="articles/upload" element={<UploadArticle />} />
+            <Route path="/appointments" element={<AppointmentsList />} />
+            <Route path="/appointments/:id" element={<ViewAppointment />} />
+           <Route path="/appointments/:id/edit" element={<EditAppointment />} />
+
+
+            
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom"; 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -195,15 +196,20 @@ export default function AdminActivity() {
           <p className="text-muted-foreground">Monitor all administrative actions and system changes</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2">
-            <Filter className="h-4 w-4" />
-            Export Log
-          </Button>
-          <Button className="gap-2">
-            <Shield className="h-4 w-4" />
-            Security Report
-          </Button>
-        </div>
+  <Link to="/export-log">
+    <Button variant="outline" className="gap-2">
+      <Filter className="h-4 w-4" />
+      Export Log
+    </Button>
+  </Link>
+  <Link to="/security-report">
+    <Button className="gap-2">
+      <Shield className="h-4 w-4" />
+      Security Report
+    </Button>
+  </Link>
+</div>
+
       </div>
 
       {/* Activity Stats */}

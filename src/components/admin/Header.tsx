@@ -22,18 +22,18 @@ export function Header() {
     <header className="bg-card border-b border-border px-6 py-4 shadow-soft">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4 flex-1">
-          <div>
-            <h2 className="text-xl font-bold text-foreground">Hello Robert 👋</h2>
-            <p className="text-sm text-muted-foreground">{greeting}</p>
-          </div>
+         
           
-          <div className="relative max-w-md ml-auto">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search..."
-              className="pl-10 bg-background"
-            />
-          </div>
+          <div className="flex items-center gap-4 flex-1">
+  <div className="relative w-1/2 mx-auto">
+    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+    <Input
+      placeholder="Search..."
+      className="pl-10 bg-background w-full"
+    />
+  </div>
+</div>
+
         </div>
 
         <div className="flex items-center gap-4">
@@ -50,17 +50,9 @@ export function Header() {
             </Badge>
           </Button>
           
-          {/* Quick Video Call Access */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="hover:bg-accent"
-            onClick={() => navigate('/video')}
-          >
-            <Video className="h-5 w-5" />
-          </Button>
           
-          <Button variant="ghost" size="icon" className="relative">
+          
+          <Button variant="ghost" size="icon" className="relative" onClick={() => navigate('/notifications')}>
             <Bell className="h-5 w-5" />
             <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
               3
