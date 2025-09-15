@@ -178,7 +178,8 @@ export default function ChatScreen() {
   };
 
   const simulateVideoCall = () => {
-    window.location.href = "/video";
+    // Navigate to video call with the selected contact
+    window.location.href = `/video?contact=${encodeURIComponent(selectedChat.name)}`;
   };
 
   return (
@@ -385,6 +386,15 @@ export default function ChatScreen() {
           </div>
         </div>
       </div>
+      
+      {/* Floating Video Call Button */}
+      <Button 
+        onClick={simulateVideoCall}
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-primary hover:bg-primary/90 shadow-xl z-50"
+        size="icon"
+      >
+        <Video className="h-6 w-6" />
+      </Button>
     </div>
   );
 }

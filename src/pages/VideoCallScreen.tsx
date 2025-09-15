@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -68,6 +69,9 @@ const chatMessages = [
 ];
 
 export default function VideoCallScreen() {
+  const [searchParams] = useSearchParams();
+  const contactName = searchParams.get('contact') || 'Dr. Sarah Wilson';
+  
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [showParticipants, setShowParticipants] = useState(false);
@@ -108,7 +112,7 @@ export default function VideoCallScreen() {
   };
 
   return (
-    <div className={`${isFullscreen ? 'fixed inset-0 z-50' : 'h-[calc(100vh-8rem)]'} bg-gray-900 rounded-lg overflow-hidden relative`}>
+    <div className={`${isFullscreen ? 'fixed inset-0 z-50' : 'h-[calc(100vh-2rem)] m-4'} bg-gray-900 rounded-lg overflow-hidden relative`}>
       {/* Header Bar */}
       <div className="absolute top-0 left-0 right-0 bg-black/50 text-white p-4 flex justify-between items-center z-20">
         <div className="flex items-center gap-4">
@@ -121,8 +125,8 @@ export default function VideoCallScreen() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h3 className="font-semibold">Weekly Staff Meeting</h3>
-            <p className="text-sm opacity-75">Meeting ID: 123-456-789 • {formatDuration(callDuration)}</p>
+            <h3 className="font-semibold">Call with {contactName}</h3>
+            <p className="text-sm opacity-75">Video Call • {formatDuration(callDuration)}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

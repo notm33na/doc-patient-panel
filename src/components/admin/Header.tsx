@@ -1,6 +1,8 @@
-import { Bell, Search, User } from "lucide-react";
+import { Bell, Search, User, MessageCircle, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function Header() {
+  const navigate = useNavigate();
   const currentTime = new Date().getHours();
   const greeting = currentTime < 12 ? "Good Morning" : currentTime < 17 ? "Good Afternoon" : "Good Evening";
 
@@ -34,6 +37,29 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Quick Chat Access */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="relative hover:bg-accent"
+            onClick={() => navigate('/chat')}
+          >
+            <MessageCircle className="h-5 w-5" />
+            <Badge className="absolute -top-1 -right-1 h-4 w-4 bg-primary text-white text-xs rounded-full flex items-center justify-center">
+              3
+            </Badge>
+          </Button>
+          
+          {/* Quick Video Call Access */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="hover:bg-accent"
+            onClick={() => navigate('/video')}
+          >
+            <Video className="h-5 w-5" />
+          </Button>
+          
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
             <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">

@@ -10,7 +10,9 @@ import {
   Activity,
   CreditCard,
   BarChart3,
-  UserPlus
+  UserPlus,
+  MessageCircle,
+  Video
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +27,11 @@ const navigation = [
   { name: "Publications", href: "/articles", icon: FileText },
   { name: "Admin Activity", href: "/activity", icon: Activity },
   { name: "Settings", href: "/settings", icon: Settings },
+];
+
+const communicationNav = [
+  { name: "Chat", href: "/chat", icon: MessageCircle },
+  { name: "Video Calls", href: "/video", icon: Video },
 ];
 
 export function Sidebar() {
@@ -60,6 +67,32 @@ export function Sidebar() {
             </NavLink>
           ))}
         </nav>
+
+        {/* Communication Section */}
+        <div className="mt-6">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-3">
+            Communication
+          </h3>
+          <nav className="space-y-2">
+            {communicationNav.map((item) => (
+              <NavLink
+                key={item.name}
+                to={item.href}
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-smooth",
+                    isActive
+                      ? "bg-gradient-primary text-white shadow-soft"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  )
+                }
+              >
+                <item.icon className="h-4 w-4" />
+                {item.name}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
       </div>
 
       <div className="absolute bottom-6 left-6 right-6">
