@@ -19,7 +19,7 @@ const navigation = [
   { name: "All Doctors", href: "/doctors", icon: UserCheck },
   { name: "All Patients", href: "/patients", icon: Users },
   { name: "All Appointments", href: "/appointments", icon: Calendar },
-  { name: "Payroll", href: "/payroll", icon: CreditCard },
+  { name: "Transaction Log", href: "/transactions", icon: CreditCard },
   { name: "Feedback Analysis", href: "/feedback", icon: BarChart3 },
   { name: "Candidates", href: "/candidates", icon: UserPlus },
   { name: "Publications", href: "/articles", icon: FileText },

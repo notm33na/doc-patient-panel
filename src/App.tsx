@@ -14,6 +14,10 @@ import ChatScreen from "./pages/ChatScreen";
 import VideoCallScreen from "./pages/VideoCallScreen";
 import NotificationsScreen from "./pages/NotificationsScreen";
 import SettingsScreen from "./pages/SettingsScreen";
+import TransactionLog from "./pages/TransactionLog";
+import FeedbackAnalysis from "./pages/FeedbackAnalysis";
+import Candidates from "./pages/Candidates";
+import AdminActivity from "./pages/AdminActivity";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,10 +36,10 @@ const App = () => (
             <Route path="articles" element={<Articles />} />
             <Route path="suspended" element={<SuspendedUsers />} />
             <Route path="appointments" element={<AppointmentsList />} />
-            <Route path="payroll" element={<Dashboard />} />
-            <Route path="feedback" element={<Dashboard />} />
-            <Route path="candidates" element={<Dashboard />} />
-            <Route path="activity" element={<Dashboard />} />
+            <Route path="transactions" element={<TransactionLog />} />
+            <Route path="feedback" element={<FeedbackAnalysis />} />
+            <Route path="candidates" element={<Candidates />} />
+            <Route path="activity" element={<AdminActivity />} />
             <Route path="chat" element={<ChatScreen />} />
             <Route path="video" element={<VideoCallScreen />} />
             <Route path="notifications" element={<NotificationsScreen />} />
