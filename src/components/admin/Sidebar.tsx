@@ -12,7 +12,8 @@ import {
   BarChart3,
   UserPlus,
   MessageCircle,
-  Video
+  Video,
+  ShieldCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ const navigation = [
   { name: "Feedback Analysis", href: "/feedback", icon: BarChart3 },
   { name: "Transaction Log", href: "/transactions", icon: CreditCard },
   { name: "Publications", href: "/articles", icon: FileText },
+  { name: "Admin Management", href: "/admin-management", icon: ShieldCheck },
   { name: "Admin Activity", href: "/activity", icon: Activity },
   { name: "Settings", href: "/settings", icon: Settings },
 ];

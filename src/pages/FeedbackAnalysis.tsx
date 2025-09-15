@@ -5,6 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { 
   Search, 
   Star, 
@@ -15,6 +24,7 @@ import {
   Eye,
   Flag
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const topRankedDoctors = [
   {
@@ -118,7 +128,11 @@ const suspendedDoctors = [
 ];
 
 export default function FeedbackAnalysis() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterSpecialty, setFilterSpecialty] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
 
   const getSeverityColor = (severity: string) => {
     switch(severity.toLowerCase()) {
@@ -141,19 +155,22 @@ export default function FeedbackAnalysis() {
   };
 
   return (
-    <div className="space-y-6">
+    
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Feedback Analysis</h1>
-          <p className="text-muted-foreground">Monitor doctor performance, flagged comments, and suspended accounts</p>
+          <p className="text-muted-foreground">
+            Monitor doctor performance, flagged comments, and suspended accounts
+          </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => setFilterOpen(true)}>
             <Filter className="h-4 w-4" />
             Filter
           </Button>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => navigate("/generate-report")}>
             <TrendingUp className="h-4 w-4" />
             Generate Report
           </Button>
@@ -170,7 +187,6 @@ export default function FeedbackAnalysis() {
           className="pl-10"
         />
       </div>
-
       {/* Tabs */}
       <Tabs defaultValue="top-ranked" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
@@ -281,7 +297,54 @@ export default function FeedbackAnalysis() {
             </CardContent>
           </Card>
         </TabsContent>
+{/* Filter Dialog */}
+      <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Filter Feedback</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Doctor Specialty</Label>
+              <Select value={filterSpecialty} onValueChange={setFilterSpecialty}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select specialty" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="Cardiology">Cardiology</SelectItem>
+                  <SelectItem value="Neurology">Neurology</SelectItem>
+                  <SelectItem value="Pediatrics">Pediatrics</SelectItem>
+                  <SelectItem value="Orthopedics">Orthopedics</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
+            <div>
+              <Label>Status</Label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="under review">Under Review</SelectItem>
+                  <SelectItem value="investigating">Investigating</SelectItem>
+                  <SelectItem value="escalated">Escalated</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setFilterSpecialty("all");
+              setFilterStatus("all");
+              setFilterOpen(false);
+            }}>Reset</Button>
+            <Button onClick={() => setFilterOpen(false)}>Apply</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
         {/* Suspended Doctors */}
         <TabsContent value="suspended" className="space-y-4">
           <Card className="border border-border shadow-soft">

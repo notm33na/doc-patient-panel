@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Search, 
   Filter, 
@@ -88,12 +98,24 @@ const getStatusColor = (status: string) => {
 };
 
 export default function Patients() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredPatients = patients.filter(patient =>
-    patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.condition.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter States
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterDoctor, setFilterDoctor] = useState<string>("all");
+
+  const filteredPatients = patients.filter((patient) => {
+    const matchesSearch =
+      patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.condition.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = filterStatus === "all" || patient.status === filterStatus;
+    const matchesDoctor = filterDoctor === "all" || patient.doctor === filterDoctor;
+
+    return matchesSearch && matchesStatus && matchesDoctor;
+  });
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -102,13 +124,9 @@ export default function Patients() {
           <h1 className="text-3xl font-bold text-foreground">Patients Management</h1>
           <p className="text-muted-foreground">Manage patient profiles and medical records</p>
         </div>
-        <Button variant="gradient">
-          <User className="h-4 w-4" />
-          Add New Patient
-        </Button>
       </div>
 
-      {/* Search and Filter */}
+      {/* Search + Filter */}
       <Card className="shadow-soft">
         <CardContent className="p-6">
           <div className="flex gap-4">
@@ -121,7 +139,7 @@ export default function Patients() {
                 className="pl-10"
               />
             </div>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setFilterOpen(true)}>
               <Filter className="h-4 w-4" />
               Filter
             </Button>
@@ -152,31 +170,7 @@ export default function Patients() {
                     <p className="text-sm text-muted-foreground">Age: {patient.age}</p>
                   </div>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit Profile
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <FileText className="mr-2 h-4 w-4" />
-                      Medical Records
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Calendar className="mr-2 h-4 w-4" />
-                      Schedule Appointment
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
-                      <UserX className="mr-2 h-4 w-4" />
-                      Suspend Account
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -207,19 +201,65 @@ export default function Patients() {
               </div>
 
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1">
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/edit-patient/${patient.id}`)}>
                   <Edit className="h-3 w-3" />
                   Edit
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1">
-                  <Calendar className="h-3 w-3" />
-                  Schedule
                 </Button>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {/* Filter Dialog */}
+      <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Filter Patients</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Status</Label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="follow-up">Follow-up</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Doctor</Label>
+              <Select value={filterDoctor} onValueChange={setFilterDoctor}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select doctor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="Dr. Sarah Johnson">Dr. Sarah Johnson</SelectItem>
+                  <SelectItem value="Dr. Michael Chen">Dr. Michael Chen</SelectItem>
+                  <SelectItem value="Dr. Emily Rodriguez">Dr. Emily Rodriguez</SelectItem>
+                  <SelectItem value="Dr. James Wilson">Dr. James Wilson</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setFilterStatus("all");
+              setFilterDoctor("all");
+              setFilterOpen(false);
+            }}>Reset</Button>
+            <Button onClick={() => setFilterOpen(false)}>Apply</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

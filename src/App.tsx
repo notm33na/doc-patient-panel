@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AdminLayout } from "./components/admin/AdminLayout";
+
 import Dashboard from "./pages/Dashboard";
 import Doctors from "./pages/Doctors";
 import Patients from "./pages/Patients";
@@ -28,6 +29,12 @@ import ExportList from "./pages/ExportList";
 import AddCandidate from "./pages/AddCandidate";
 import ReviewCandidate from "./pages/ReviewCandidate";
 import GenerateReport from "./pages/GenerateReport";
+import DoctorFeedback from "./pages/DoctorFeedback";
+import EditDoctor from "./pages/EditDoctor";
+import EditPatient from "./pages/EditPatient";
+import GenerateReports from "./pages/GenerateReports";
+import Login from "./pages/Login";
+import AdminManagement from "./pages/AdminManagement";
 
 const queryClient = new QueryClient();
 
@@ -38,36 +45,42 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<AdminLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="doctors" element={<Doctors />} />
-            <Route path="patients" element={<Patients />} />
-            <Route path="articles" element={<Articles />} />
-            <Route path="suspended" element={<SuspendedUsers />} />
-            <Route path="appointments" element={<AppointmentsList />} />
-            <Route path="transactions" element={<TransactionLog />} />
-            <Route path="feedback" element={<FeedbackAnalysis />} />
-            <Route path="candidates" element={<Candidates />} />
-            <Route path="activity" element={<AdminActivity />} />
-            <Route path="chat" element={<ChatScreen />} />
-            <Route path="video" element={<VideoCallScreen />} />
-            <Route path="notifications" element={<NotificationsScreen />} />
-            <Route path="settings" element={<SettingsScreen />} />
-            <Route path="/export-log" element={<ExportLog />} />
-            <Route path="/security-report" element={<SecurityReport />} />
-            <Route path="/export-list" element={<ExportList />} />
+          {/* Login Page */}
+          <Route path="/" element={<Login />} />
+
+          {/* Protected Admin Layout (with Sidebar) */}
+          <Route element={<AdminLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/doctors" element={<Doctors />} />
+            <Route path="/patients" element={<Patients />} />
+            <Route path="/articles" element={<Articles />} />
+            <Route path="/articles/upload" element={<UploadArticle />} />
+            <Route path="/suspended" element={<SuspendedUsers />} />
+            <Route path="/appointments" element={<AppointmentsList />} />
+            <Route path="/appointments/:id" element={<ViewAppointment />} />
+            <Route path="/appointments/:id/edit" element={<EditAppointment />} />
+            <Route path="/transactions" element={<TransactionLog />} />
+            <Route path="/feedback" element={<FeedbackAnalysis />} />
+            <Route path="/feedback/:id" element={<DoctorFeedback />} />
+            <Route path="/candidates" element={<Candidates />} />
             <Route path="/add-candidate" element={<AddCandidate />} />
             <Route path="/review/:id" element={<ReviewCandidate />} />
             <Route path="/generate-report" element={<GenerateReport />} />
-<Route path="articles/upload" element={<UploadArticle />} />
-            <Route path="/appointments" element={<AppointmentsList />} />
-            <Route path="/appointments/:id" element={<ViewAppointment />} />
-           <Route path="/appointments/:id/edit" element={<EditAppointment />} />
-
-
-            
+            <Route path="/generate-reports" element={<GenerateReports />} />
+            <Route path="/chat" element={<ChatScreen />} />
+            <Route path="/video" element={<VideoCallScreen />} />
+            <Route path="/notifications" element={<NotificationsScreen />} />
+            <Route path="/settings" element={<SettingsScreen />} />
+            <Route path="/export-log" element={<ExportLog />} />
+            <Route path="/export-list" element={<ExportList />} />
+            <Route path="/security-report" element={<SecurityReport />} />
+            <Route path="/admin-management" element={<AdminManagement />} />
+            <Route path="/activity" element={<AdminActivity />} />
+            <Route path="/edit-doctor/:id" element={<EditDoctor />} />
+            <Route path="/edit-patient/:id" element={<EditPatient />} />
           </Route>
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
+          {/* 404 Fallback */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
