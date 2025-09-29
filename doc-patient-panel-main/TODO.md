@@ -1,0 +1,2 @@
+- [x] Update App.tsx to make Login the landing page and restructure routes for dashboard
+- [x] Update LoginForm.tsx to navigate to dashboard on successful login
