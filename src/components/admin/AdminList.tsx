@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -5,46 +7,23 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MoreHorizontal, Shield, Users } from "lucide-react";
 
-// Mock data for existing admins
-const mockAdmins = [
-  {
-    id: 1,
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@healthcare.com",
-    role: "Super Admin",
-    department: "IT & Technology",
-    status: "Active",
-    createdAt: "2024-01-15"
-  },
-  {
-    id: 2,
-    firstName: "Sarah",
-    lastName: "Johnson",
-    email: "sarah.j@healthcare.com",
-    role: "Admin",
-    department: "Healthcare",
-    status: "Active",
-    createdAt: "2024-02-20"
-  },
-  {
-    id: 3,
-    firstName: "Mike",
-    lastName: "Wilson",
-    email: "m.wilson@healthcare.com",
-    role: "Moderator",
-    department: "Operations",
-    status: "Active",
-    createdAt: "2024-03-10"
-  }
-];
+interface Admin {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  department: string;
+  status?: string; // optional if not in DB
+  createdAt: string;
+}
 
 const getRoleBadgeColor = (role: string) => {
   switch (role) {
     case "Super Admin":
       return "bg-gradient-to-r from-red-500 to-red-600 text-white";
     case "Admin":
-      return "bg-gradient-to-r from-primary to-primary-glow text-white";
+      return "bg-gradient-to-r from-blue-500 to-blue-600 text-white";
     case "Moderator":
       return "bg-gradient-to-r from-yellow-500 to-yellow-600 text-white";
     default:
@@ -53,6 +32,31 @@ const getRoleBadgeColor = (role: string) => {
 };
 
 export const AdminList = () => {
+  const [admins, setAdmins] = useState<Admin[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAdmins = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/users/admins");
+        setAdmins(response.data);
+      } catch (error) {
+        console.error("Error fetching admins:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAdmins();
+  }, []);
+
+  if (loading) {
+    return (
+      <Card className="w-full p-8 text-center">
+        <p className="text-muted-foreground">Loading admins...</p>
+      </Card>
+    );
+  }
+
   return (
     <Card className="w-full border border-border/20 shadow-medium bg-card">
       <CardHeader className="space-y-2">
@@ -66,11 +70,11 @@ export const AdminList = () => {
             </CardTitle>
           </div>
           <Badge variant="secondary" className="px-3 py-1">
-            {mockAdmins.length} Active
+            {admins.length} Active
           </Badge>
         </div>
       </CardHeader>
-      
+
       <CardContent>
         <div className="rounded-lg border border-border/20 overflow-hidden">
           <Table>
@@ -85,8 +89,8 @@ export const AdminList = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockAdmins.map((admin) => (
-                <TableRow key={admin.id} className="hover:bg-muted/20 transition-colors">
+              {admins.map((admin) => (
+                <TableRow key={admin._id} className="hover:bg-muted/20 transition-colors">
                   <TableCell className="py-4">
                     <div className="flex items-center space-x-3">
                       <Avatar className="h-10 w-10">
@@ -99,34 +103,26 @@ export const AdminList = () => {
                           {admin.firstName} {admin.lastName}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          Added {admin.createdAt}
+                          Added {new Date(admin.createdAt).toLocaleDateString()}
                         </div>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {admin.email}
-                  </TableCell>
+                  <TableCell className="text-muted-foreground">{admin.email}</TableCell>
                   <TableCell>
                     <Badge className={getRoleBadgeColor(admin.role)}>
                       <Shield className="h-3 w-3 mr-1" />
                       {admin.role}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {admin.department}
-                  </TableCell>
+                  <TableCell className="text-muted-foreground">{admin.department || "—"}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
-                      {admin.status}
+                      {admin.status || "Active"}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 hover:bg-muted/50"
-                    >
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-muted/50">
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </TableCell>
