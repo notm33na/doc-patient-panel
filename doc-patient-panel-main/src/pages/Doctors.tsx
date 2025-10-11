@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import axios from "axios";
+import {
+  Card, CardContent, CardHeader
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -19,8 +22,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Search,
   Filter,
@@ -32,122 +40,109 @@ import {
   Heart,
   Brain,
   Eye,
-  Stethoscope
+  Stethoscope,
 } from "lucide-react";
 
-const doctors = [
-  {
-    id: 1,
-    name: "Dr. Sarah Johnson",
-    specialty: "Cardiology",
-    email: "sarah.johnson@hospital.com",
-    phone: "+1 (555) 123-4567",
-    rating: 4.8,
-    reviews: 124,
-    patients: 340,
-    status: "active",
-    sentiment: "positive",
-    avatar: "/placeholder-doctor1.jpg",
-    icon: Heart
-  },
-  {
-    id: 2,
-    name: "Dr. Michael Chen",
-    specialty: "Neurology",
-    email: "michael.chen@hospital.com",
-    phone: "+1 (555) 234-5678",
-    rating: 4.9,
-    reviews: 89,
-    patients: 267,
-    status: "active",
-    sentiment: "positive",
-    avatar: "/placeholder-doctor2.jpg",
-    icon: Brain
-  },
-  {
-    id: 3,
-    name: "Dr. Emily Rodriguez",
-    specialty: "Ophthalmology",
-    email: "emily.rodriguez@hospital.com",
-    phone: "+1 (555) 345-6789",
-    rating: 4.7,
-    reviews: 156,
-    patients: 423,
-    status: "active",
-    sentiment: "neutral",
-    avatar: "/placeholder-doctor3.jpg",
-    icon: Eye
-  },
-  {
-    id: 4,
-    name: "Dr. James Wilson",
-    specialty: "General Medicine",
-    email: "james.wilson@hospital.com",
-    phone: "+1 (555) 456-7890",
-    rating: 4.6,
-    reviews: 203,
-    patients: 578,
-    status: "busy",
-    sentiment: "positive",
-    avatar: "/placeholder-doctor4.jpg",
-    icon: Stethoscope
-  }
-];
-
+// Utility color functions
 const getSentimentColor = (sentiment: string) => {
   switch (sentiment) {
     case "positive":
-      return "bg-success/10 text-success border-success/20";
+      return "bg-green-100 text-green-700 border-green-300";
     case "neutral":
-      return "bg-warning/10 text-warning border-warning/20";
+      return "bg-yellow-100 text-yellow-700 border-yellow-300";
     case "negative":
-      return "bg-destructive/10 text-destructive border-destructive/20";
+      return "bg-red-100 text-red-700 border-red-300";
     default:
-      return "bg-muted/10 text-muted-foreground border-muted/20";
+      return "bg-gray-100 text-gray-600 border-gray-300";
   }
 };
 
 const getStatusColor = (status: string) => {
   switch (status) {
     case "active":
-      return "bg-success/10 text-success border-success/20";
+      return "bg-green-100 text-green-700 border-green-300";
     case "busy":
-      return "bg-warning/10 text-warning border-warning/20";
+      return "bg-yellow-100 text-yellow-700 border-yellow-300";
     case "suspended":
-      return "bg-destructive/10 text-destructive border-destructive/20";
+      return "bg-red-100 text-red-700 border-red-300";
     default:
-      return "bg-muted/10 text-muted-foreground border-muted/20";
+      return "bg-gray-100 text-gray-600 border-gray-300";
   }
 };
 
 export default function Doctors() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-
-  // Filter states
+  const [doctors, setDoctors] = useState<any[]>([]);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filterSpecialty, setFilterSpecialty] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterSentiment, setFilterSentiment] = useState<string>("all");
+  const [filterSpecialty, setFilterSpecialty] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterSentiment, setFilterSentiment] = useState("all");
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    doctorId: string | null;
+  }>({ open: false, doctorId: null });
 
+  // Fetch approved doctors
+  const fetchDoctors = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/doctors");
+      const approved = res.data.filter((doc: any) => doc.status === "approved");
+      setDoctors(approved);
+    } catch (err) {
+      console.error("Error fetching doctors:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchDoctors();
+  }, []);
+
+  // Suspend doctor
+  const suspendDoctor = async (id: string) => {
+    try {
+      await axios.put(`http://localhost:5000/api/doctors/${id}/suspend`);
+      setConfirmDialog({ open: false, doctorId: null });
+      fetchDoctors(); // refresh list
+    } catch (err) {
+      console.error("Error suspending doctor:", err);
+    }
+  };
+
+  // Filters
   const filteredDoctors = doctors.filter((doctor) => {
     const matchesSearch =
-      doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doctor.specialty.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesSpecialty = filterSpecialty === "all" || doctor.specialty.toLowerCase() === filterSpecialty;
-    const matchesStatus = filterStatus === "all" || doctor.status === filterStatus;
-    const matchesSentiment = filterSentiment === "all" || doctor.sentiment === filterSentiment;
-
-    return matchesSearch && matchesSpecialty && matchesStatus && matchesSentiment;
+      doctor.DoctorName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doctor.specialization?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSpecialty =
+      filterSpecialty === "all" ||
+      doctor.specialization?.toLowerCase() === filterSpecialty;
+    const matchesStatus =
+      filterStatus === "all" || doctor.status === filterStatus;
+    const matchesSentiment =
+      filterSentiment === "all" || doctor.sentiment === filterSentiment;
+    return (
+      matchesSearch && matchesSpecialty && matchesStatus && matchesSentiment
+    );
   });
+
+  const iconMap: Record<string, any> = {
+    cardiology: Heart,
+    neurology: Brain,
+    ophthalmology: Eye,
+    "general medicine": Stethoscope,
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Doctors Management</h1>
-          <p className="text-muted-foreground">Manage doctor profiles, feedback, and status</p>
+          <h1 className="text-3xl font-bold text-foreground">
+            Doctors Management
+          </h1>
+          <p className="text-muted-foreground">
+            Manage doctor profiles, feedback, and status
+          </p>
         </div>
         <Button variant="gradient" onClick={() => navigate("/candidates")}>
           <Edit className="h-4 w-4" />
@@ -179,161 +174,128 @@ export default function Doctors() {
       {/* Doctors Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredDoctors.length > 0 ? (
-          filteredDoctors.map((doctor) => (
-            <Card key={doctor.id} className="shadow-soft hover:shadow-medium transition-smooth">
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={doctor.avatar} />
-                        <AvatarFallback className="bg-gradient-secondary">
-                          <doctor.icon className="h-6 w-6" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className={`absolute -bottom-1 -right-1 h-4 w-4 rounded-full ${getStatusColor(doctor.status)}`}>
-                        <div className="h-2 w-2 rounded-full bg-current mx-auto mt-1" />
+          filteredDoctors.map((doctor) => {
+            const Icon =
+              iconMap[doctor.specialization?.toLowerCase()] || Stethoscope;
+            return (
+              <Card
+                key={doctor._id}
+                className="shadow-soft hover:shadow-medium transition-smooth"
+              >
+                <CardHeader className="pb-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src="/placeholder-doctor.jpg" />
+                          <AvatarFallback className="bg-gradient-secondary">
+                            <Icon className="h-6 w-6" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div
+                          className={`absolute -bottom-1 -right-1 h-4 w-4 rounded-full ${getStatusColor(
+                            doctor.status
+                          )}`}
+                        >
+                          <div className="h-2 w-2 rounded-full bg-current mx-auto mt-1" />
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">{doctor.DoctorName}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {doctor.specialization}
+                        </p>
                       </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold">{doctor.name}</h3>
-                      <p className="text-sm text-muted-foreground">{doctor.specialty}</p>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => navigate(`/edit-doctor/${doctor._id}`)}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit Profile
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => navigate(`/feedback/${doctor._id}`)}
+                        >
+                          <MessageCircle className="mr-2 h-4 w-4" />
+                          View Feedback
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() =>
+                            setConfirmDialog({ open: true, doctorId: doctor._id })
+                          }
+                        >
+                          <UserX className="mr-2 h-4 w-4" />
+                          Suspend Account
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Email:</span>
+                      <span className="font-medium">{doctor.email}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Phone:</span>
+                      <span className="font-medium">{doctor.phone}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Patients:</span>
+                      <span className="font-medium">
+                        {doctor.no_of_patients || 0}
+                      </span>
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => navigate(`/edit-doctor/${doctor.id}`)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Profile
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate(`/feedback/${doctor.id}`)}>
-                        <MessageCircle className="mr-2 h-4 w-4" />
-                        View Feedback
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
-                        <UserX className="mr-2 h-4 w-4" />
-                        Suspend Account
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Email:</span>
-                    <span className="font-medium">{doctor.email}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Phone:</span>
-                    <span className="font-medium">{doctor.phone}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Patients:</span>
-                    <span className="font-medium">{doctor.patients}</span>
-                  </div>
-                </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 text-warning fill-current" />
-                    <span className="font-medium">{doctor.rating}</span>
-                    <span className="text-sm text-muted-foreground">({doctor.reviews})</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                      <span className="font-medium">
+                        {doctor.sentiment_score || "N/A"}
+                      </span>
+                    </div>
+                    <Badge
+                      className={getSentimentColor(doctor.sentiment || "neutral")}
+                    >
+                      {doctor.sentiment || "neutral"} sentiment
+                    </Badge>
                   </div>
-                  <Badge className={getSentimentColor(doctor.sentiment)}>
-                    {doctor.sentiment} sentiment
-                  </Badge>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/edit-doctor/${doctor.id}`)}>
-                    <Edit className="h-3 w-3" />
-                    Edit
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/feedback/${doctor.id}`)}>
-                    <MessageCircle className="h-3 w-3" />
-                    Feedback
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                </CardContent>
+              </Card>
+            );
+          })
         ) : (
-          <p className="text-muted-foreground">No doctors match your filters.</p>
+          <p className="text-muted-foreground">No approved doctors found.</p>
         )}
       </div>
 
-      {/* Filter Dialog */}
-      <Dialog open={filterOpen} onOpenChange={setFilterOpen}>
+      {/* Suspend Confirmation Dialog */}
+      <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Filter Doctors</DialogTitle>
+            <DialogTitle>Confirm Suspension</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            {/* Specialty Filter */}
-            <div>
-              <Label>Specialty</Label>
-              <Select value={filterSpecialty} onValueChange={setFilterSpecialty}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select specialty" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="cardiology">Cardiology</SelectItem>
-                  <SelectItem value="neurology">Neurology</SelectItem>
-                  <SelectItem value="ophthalmology">Ophthalmology</SelectItem>
-                  <SelectItem value="general medicine">General Medicine</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Status Filter */}
-            <div>
-              <Label>Status</Label>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="busy">Busy</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Sentiment Filter */}
-            <div>
-              <Label>Sentiment</Label>
-              <Select value={filterSentiment} onValueChange={setFilterSentiment}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select sentiment" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="positive">Positive</SelectItem>
-                  <SelectItem value="neutral">Neutral</SelectItem>
-                  <SelectItem value="negative">Negative</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <p>Are you sure you want to suspend this doctor's account?</p>
           <DialogFooter className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => {
-              setFilterSpecialty("all");
-              setFilterStatus("all");
-              setFilterSentiment("all");
-              setFilterOpen(false);
-            }}>
-              Reset
+            <Button variant="outline" onClick={() => setConfirmDialog({ open: false, doctorId: null })}>
+              Cancel
             </Button>
-            <Button onClick={() => setFilterOpen(false)}>Apply</Button>
+            <Button
+              variant="destructive"
+              onClick={() => suspendDoctor(confirmDialog.doctorId!)}
+            >
+              Confirm
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

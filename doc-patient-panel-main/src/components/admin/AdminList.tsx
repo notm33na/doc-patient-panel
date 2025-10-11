@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/components/ui/use-toast";
+import axios from "axios"; // ✅ Better than fetch for error handling
 
 interface Admin {
   _id: string;
@@ -23,32 +24,27 @@ interface Admin {
   email: string;
   role: string;
   department: string;
-  status: string;
+  status?: string; // ✅ Optional, since backend doesn’t always send it
 }
 
-const roles = ["admin", "superadmin", "moderator"];
+const roles = ["Admin", "Super Admin", "Moderator", "Viewer"];
 const departments = ["IT", "HR", "Finance", "Marketing"];
 
 export const AdminList = () => {
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Editing state
   const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null);
   const [formData, setFormData] = useState<Partial<Admin>>({});
 
-  // Fetch admins
+  // ✅ Fetch admins
   const fetchAdmins = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/admins");
-      if (!res.ok) throw new Error("Failed to fetch admins");
-
-      const data = await res.json();
-      setAdmins(data);
+      const res = await axios.get("http://localhost:5000/api/users/admins");
+      setAdmins(res.data);
     } catch (err: any) {
       toast({
         title: "Error",
-        description: err.message,
+        description: err.message || "Failed to fetch admins",
         variant: "destructive",
       });
     } finally {
@@ -60,19 +56,12 @@ export const AdminList = () => {
     fetchAdmins();
   }, []);
 
-  // Delete admin
+  // ✅ Delete admin
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this admin?")) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/admins/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to delete admin");
-      }
-
+      await axios.delete(`http://localhost:5000/api/users/${id}`);
       setAdmins((prev) => prev.filter((admin) => admin._id !== id));
 
       toast({
@@ -82,40 +71,44 @@ export const AdminList = () => {
     } catch (err: any) {
       toast({
         title: "Error",
-        description: err.message,
+        description: err.message || "Failed to delete admin",
         variant: "destructive",
       });
     }
   };
 
-  // Open edit modal
+  // ✅ Open edit modal
   const handleEdit = (admin: Admin) => {
     setEditingAdmin(admin);
     setFormData(admin);
   };
 
-  // Save update
+  // ✅ Save updated admin
   const handleUpdate = async () => {
     if (!editingAdmin) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/admins/${editingAdmin._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      const res = await axios.put(
+        `http://localhost:5000/api/users/${editingAdmin._id}`,
+        formData
+      );
 
-      if (!res.ok) throw new Error("Failed to update admin");
-      const updatedAdmin = await res.json();
-
+      const updatedAdmin = res.data;
       setAdmins((prev) =>
         prev.map((a) => (a._id === updatedAdmin._id ? updatedAdmin : a))
       );
 
       setEditingAdmin(null);
-      toast({ title: "Admin Updated", description: "Changes saved successfully." });
+      toast({
+        title: "Admin Updated",
+        description: "Changes saved successfully.",
+      });
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: err.message || "Failed to update admin",
+        variant: "destructive",
+      });
     }
   };
 
@@ -150,10 +143,9 @@ export const AdminList = () => {
                   <TableCell>{admin.email}</TableCell>
                   <TableCell>{admin.role}</TableCell>
                   <TableCell>{admin.department}</TableCell>
-                  <TableCell>{admin.status}</TableCell>
+                  <TableCell>{admin.status || "Active"}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      {/* Edit button */}
                       <Button
                         variant="outline"
                         size="sm"
@@ -161,8 +153,6 @@ export const AdminList = () => {
                       >
                         Edit
                       </Button>
-
-                      {/* Delete button */}
                       <Button
                         variant="destructive"
                         size="sm"
@@ -178,7 +168,7 @@ export const AdminList = () => {
           </Table>
         )}
 
-        {/* Edit Modal */}
+        {/* ✅ Edit Modal */}
         {editingAdmin && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
             <div className="bg-white p-6 rounded-lg w-96">
@@ -209,7 +199,7 @@ export const AdminList = () => {
                 }
               />
 
-              {/* Role dropdown */}
+              {/* ✅ Role dropdown */}
               <select
                 className="border p-2 w-full mb-2"
                 value={formData.role || ""}
@@ -225,7 +215,7 @@ export const AdminList = () => {
                 ))}
               </select>
 
-              {/* Department dropdown */}
+              {/* ✅ Department dropdown */}
               <select
                 className="border p-2 w-full mb-2"
                 value={formData.department || ""}

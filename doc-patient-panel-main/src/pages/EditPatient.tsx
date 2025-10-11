@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,12 +15,42 @@ export default function EditPatient() {
     email: "",
     phone: "",
     doctor: "",
-    condition: "",
+    disease: "",
     status: "active",
   });
 
+  // Fetch patient data
+  useEffect(() => {
+    const fetchPatient = async () => {
+      try {
+        const res = await axios.get(`http://localhost:5000/api/patients/${id}`);
+        const patient = res.data.patient;
+        setForm({
+          name: patient.name || "",
+          email: patient.email || "",
+          phone: patient.phone || "",
+          doctor: patient.doctorId?._id || "",
+          disease: patient.disease || "",
+          status: patient.status || "active",
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchPatient();
+  }, [id]);
+
   const handleChange = (key: string, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSave = async () => {
+    try {
+      await axios.put(`http://localhost:5000/api/patients/${id}`, form);
+      navigate(-1); // go back to patients list
+    } catch (err) {
+      console.error("Failed to update patient:", err);
+    }
   };
 
   return (
@@ -41,11 +72,11 @@ export default function EditPatient() {
           </div>
           <div>
             <Label>Condition</Label>
-            <Input value={form.condition} onChange={(e) => handleChange("condition", e.target.value)} />
+            <Input value={form.disease} onChange={(e) => handleChange("disease", e.target.value)} />
           </div>
           <div className="flex gap-2 justify-end">
             <Button variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
-            <Button onClick={() => navigate(-1)}>Save</Button>
+            <Button onClick={handleSave}>Save</Button>
           </div>
         </CardContent>
       </Card>
