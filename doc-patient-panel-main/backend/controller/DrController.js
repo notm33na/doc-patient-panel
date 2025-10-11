@@ -32,8 +32,21 @@ export const addDoctor = async (req, res) => {
       sentiment_score,
       no_of_patients,
       status: "pending",
+      about: String,
+      medicalDegree: String,
+      residency: String,
+      fellowship: String,
+      boardCertification: String,
+      licenses: String,
+      deaRegistration: String,
+      hospitalAffiliations: String,
+      memberships: String,
+      malpracticeInsurance: String,
+      address: String,
+      education: String,
+         
     });
-
+    
     await newDoctor.save();
 
     res.status(201).json({

@@ -63,6 +63,19 @@ export default function ReviewCandidate() {
             <p><strong>Department:</strong> {doctor.department || "N/A"}</p>
             <p><strong>Sentiment:</strong> {doctor.sentiment || "N/A"}</p>
             <p><strong>No. of Patients:</strong> {doctor.no_of_patients ?? "N/A"}</p>
+            <p><strong>About :</strong> {doctor.about ?? "N/A"}</p>
+            <p><strong>medicalDegree :</strong> {doctor.medicalDegree ?? "N/A"}</p>
+            <p><strong>residency: :</strong> {doctor.residency ?? "N/A"}</p>
+            <p><strong>fellowship :</strong> {doctor.fellowship ?? "N/A"}</p>
+            <p><strong>boardCertification :</strong> {doctor.boardCertification ?? "N/A"}</p>
+            <p><strong>boardCertification :</strong> {doctor.boardCertification ?? "N/A"}</p>
+            <p><strong>licenses :</strong> {doctor.licenses ?? "N/A"}</p>
+            <p><strong>deaRegistration :</strong> {doctor.deaRegistration ?? "N/A"}</p>
+            <p><strong>hospitalAffiliations :</strong> {doctor.hospitalAffiliations ?? "N/A"}</p>
+            <p><strong>memberships :</strong> {doctor.memberships ?? "N/A"}</p>
+            <p><strong>malpracticeInsurance :</strong> {doctor.malpracticeInsurance ?? "N/A"}</p>
+            <p><strong>address :</strong> {doctor.address ?? "N/A"}</p>
+            <p><strong>education :</strong> {doctor.education ?? "N/A"}</p>
             <p>
               <strong>Status:</strong>{" "}
               <Badge>{doctor.status}</Badge>
@@ -80,3 +93,4 @@ export default function ReviewCandidate() {
     </div>
   );
 }
+ 
