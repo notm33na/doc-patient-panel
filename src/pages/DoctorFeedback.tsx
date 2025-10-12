@@ -15,7 +15,7 @@ const mockFeedback = {
 
 export default function DoctorFeedback() {
   const { id } = useParams();
-  const feedbackList = mockFeedback[id as keyof typeof mockFeedback] || [];
+  const feedbackList = mockFeedback[Number(id) as keyof typeof mockFeedback] || [];
 
   return (
     <div className="space-y-6">
