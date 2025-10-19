@@ -32,10 +32,12 @@ import {
   type Notification
 } from "@/services/notificationService";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function Header() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, logout } = useAuth();
   const currentTime = new Date().getHours();
   const greeting = currentTime < 12 ? "Good Morning" : currentTime < 17 ? "Good Afternoon" : "Good Evening";
   
@@ -114,22 +116,12 @@ export function Header() {
   };
 
   const confirmLogout = () => {
-    // Clear all stored data
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('appearanceSettings');
-    
-    // Show success message
+    logout();
     toast({
       title: "Logged out successfully",
-      description: `Goodbye, ${currentUser?.firstName || 'Admin'}! You have been logged out securely.`,
+      description: `Goodbye, ${user?.firstName || 'Admin'}! You have been logged out securely.`,
     });
-    
-    // Close dialog
     setShowLogoutDialog(false);
-    
-    // Navigate to login screen
-    window.location.href = '/login';
   };
 
   const cancelLogout = () => {

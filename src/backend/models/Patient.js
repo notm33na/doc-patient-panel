@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const patientSchema = new mongoose.Schema(
   {
@@ -29,6 +30,29 @@ const patientSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Hash password before saving
+patientSchema.pre('save', async function(next) {
+  // Only hash the password if it has been modified (or is new)
+  if (!this.isModified('password')) {
+    return next();
+  }
+
+  try {
+    // Check if password is already hashed (starts with $2a$ or $2b$)
+    if (this.password.startsWith('$2a$') || this.password.startsWith('$2b$')) {
+      // Password is already hashed, don't hash again
+      return next();
+    }
+
+    // Generate salt and hash password
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Indexes for better performance
 patientSchema.index({ emailAddress: 1 });

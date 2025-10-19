@@ -4,6 +4,8 @@ import Doctor from "../models/Doctor.js";
 import Notification from "../models/Notification.js";
 import Blacklist from "../models/Blacklist.js";
 import { sendEmail } from "../utils/emailService.js";
+import { validatePhoneNumber, formatPhoneForStorage } from "../utils/phoneValidation.js";
+import { logAdminActivity, getClientIP, getUserAgent } from "../utils/adminActivityLogger.js";
 
 const router = express.Router();
 
@@ -54,6 +56,20 @@ router.get("/:id", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const pendingDoctorData = req.body;
+    
+    // Validate phone number
+    if (pendingDoctorData.phone) {
+      const phoneValidation = validatePhoneNumber(pendingDoctorData.phone);
+      if (!phoneValidation.isValid) {
+        return res.status(400).json({
+          success: false,
+          message: phoneValidation.error,
+          field: "phone"
+        });
+      }
+      // Format phone number for storage
+      pendingDoctorData.phone = phoneValidation.formatted;
+    }
     
     // Check if credentials are blacklisted
     const blacklistedEntry = await Blacklist.isBlacklisted({
@@ -390,6 +406,24 @@ router.post("/:id/approve", async (req, res) => {
     await PendingDoctor.findByIdAndDelete(req.params.id);
     console.log("Pending doctor removed successfully:", req.params.id);
 
+    // Log doctor approval activity
+    await logAdminActivity({
+      adminId: req.admin?.id || 'system',
+      adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
+      adminRole: req.admin?.role || 'System',
+      action: 'APPROVE_DOCTOR',
+      details: `Approved doctor application for ${pendingDoctor.DoctorName}`,
+      ipAddress: getClientIP(req),
+      userAgent: getUserAgent(req),
+      metadata: {
+        doctorId: newDoctor._id,
+        doctorName: pendingDoctor.DoctorName,
+        doctorEmail: pendingDoctor.email,
+        specialization: pendingDoctor.specialization,
+        approvedFromPending: true
+      }
+    });
+
     res.json({
       success: true,
       data: newDoctor,
@@ -519,6 +553,25 @@ router.post("/:id/reject", async (req, res) => {
 
     // Remove from pending collection
     await PendingDoctor.findByIdAndDelete(req.params.id);
+
+    // Log doctor rejection activity
+    await logAdminActivity({
+      adminId: req.admin?.id || 'system',
+      adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
+      adminRole: req.admin?.role || 'System',
+      action: 'REJECT_DOCTOR',
+      details: `Rejected doctor application for ${pendingDoctor.DoctorName}`,
+      ipAddress: getClientIP(req),
+      userAgent: getUserAgent(req),
+      metadata: {
+        doctorId: pendingDoctor._id,
+        doctorName: pendingDoctor.DoctorName,
+        doctorEmail: pendingDoctor.email,
+        rejectionReason: rejectionReason,
+        rejectionCount: rejectionCount + 1,
+        blacklisted: rejectionCount >= 2
+      }
+    });
 
     res.json({
       success: true,

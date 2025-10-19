@@ -35,7 +35,6 @@ export const getAdminActivities = async (req, res) => {
     // Define sensitive actions that regular admins shouldn't see
     const sensitiveActions = [
       'CREATE_ADMIN',
-      'UPDATE_ADMIN', 
       'DELETE_ADMIN',
       'PROMOTE_ADMIN',
       'DEMOTE_ADMIN',
@@ -50,22 +49,33 @@ export const getAdminActivities = async (req, res) => {
     if (!isSuperAdmin) {
       // For regular admins: filter out sensitive actions and anonymize remaining data
       processedActivities = activities
-        .filter(activity => !sensitiveActions.includes(activity.action))
-        .map(activity => ({
-          ...activity.toObject(),
-          adminId: {
-            _id: 'anonymous',
-            firstName: 'Admin',
-            lastName: 'User',
-            email: 'admin@system.com',
-            role: 'Admin'
-          },
-          adminName: 'Admin User',
-          adminRole: 'Admin',
-          ipAddress: '***.***.***.***',
-          userAgent: 'Anonymous Browser',
-          metadata: {} // Remove sensitive metadata
-        }));
+        .filter(activity => {
+          // Allow all activities except sensitive ones
+          // But anonymize admin management activities
+          return !sensitiveActions.includes(activity.action);
+        })
+        .map(activity => {
+          // If it's an admin management activity (UPDATE_ADMIN), anonymize it
+          if (activity.action === 'UPDATE_ADMIN') {
+            return {
+              ...activity.toObject(),
+              adminId: {
+                _id: 'anonymous',
+                firstName: 'Admin',
+                lastName: 'User',
+                email: 'admin@system.com',
+                role: 'Admin'
+              },
+              adminName: 'Admin User',
+              adminRole: 'Admin',
+              ipAddress: '***.***.***.***',
+              userAgent: 'Anonymous Browser',
+              metadata: {} // Remove sensitive metadata
+            };
+          }
+          // For other activities, show them as-is
+          return activity.toObject();
+        });
       
       // Recalculate total count excluding sensitive actions
       const filterWithSensitiveExclusion = { ...filter, action: { $nin: sensitiveActions } };
@@ -121,7 +131,6 @@ export const getAdminActivityStats = async (req, res) => {
     // Define sensitive actions that regular admins shouldn't see
     const sensitiveActions = [
       'CREATE_ADMIN',
-      'UPDATE_ADMIN', 
       'DELETE_ADMIN',
       'PROMOTE_ADMIN',
       'DEMOTE_ADMIN',
@@ -176,21 +185,28 @@ export const getAdminActivityStats = async (req, res) => {
       // Filter out sensitive actions from recent activities
       processedRecentActivities = recentActivities
         .filter(activity => !sensitiveActions.includes(activity.action))
-        .map(activity => ({
-          ...activity.toObject(),
-          adminId: {
-            _id: 'anonymous',
-            firstName: 'Admin',
-            lastName: 'User',
-            email: 'admin@system.com',
-            role: 'Admin'
-          },
-          adminName: 'Admin User',
-          adminRole: 'Admin',
-          ipAddress: '***.***.***.***',
-          userAgent: 'Anonymous Browser',
-          metadata: {}
-        }));
+        .map(activity => {
+          // If it's an admin management activity (UPDATE_ADMIN), anonymize it
+          if (activity.action === 'UPDATE_ADMIN') {
+            return {
+              ...activity.toObject(),
+              adminId: {
+                _id: 'anonymous',
+                firstName: 'Admin',
+                lastName: 'User',
+                email: 'admin@system.com',
+                role: 'Admin'
+              },
+              adminName: 'Admin User',
+              adminRole: 'Admin',
+              ipAddress: '***.***.***.***',
+              userAgent: 'Anonymous Browser',
+              metadata: {}
+            };
+          }
+          // For other activities, show them as-is
+          return activity.toObject();
+        });
 
       // Anonymize admin names in statistics
       processedActivitiesByAdmin = activitiesByAdmin.map(item => ({
@@ -247,7 +263,6 @@ export const getAdminActivitiesByAdmin = async (req, res) => {
     // Define sensitive actions that regular admins shouldn't see
     const sensitiveActions = [
       'CREATE_ADMIN',
-      'UPDATE_ADMIN', 
       'DELETE_ADMIN',
       'PROMOTE_ADMIN',
       'DEMOTE_ADMIN',
@@ -262,22 +277,32 @@ export const getAdminActivitiesByAdmin = async (req, res) => {
     if (!isSuperAdmin) {
       // For regular admins: filter out sensitive actions and anonymize remaining data
       processedActivities = activities
-        .filter(activity => !sensitiveActions.includes(activity.action))
-        .map(activity => ({
-          ...activity.toObject(),
-          adminId: {
-            _id: 'anonymous',
-            firstName: 'Admin',
-            lastName: 'User',
-            email: 'admin@system.com',
-            role: 'Admin'
-          },
-          adminName: 'Admin User',
-          adminRole: 'Admin',
-          ipAddress: '***.***.***.***',
-          userAgent: 'Anonymous Browser',
-          metadata: {} // Remove sensitive metadata
-        }));
+        .filter(activity => {
+          // Allow all activities except sensitive ones
+          return !sensitiveActions.includes(activity.action);
+        })
+        .map(activity => {
+          // If it's an admin management activity (UPDATE_ADMIN), anonymize it
+          if (activity.action === 'UPDATE_ADMIN') {
+            return {
+              ...activity.toObject(),
+              adminId: {
+                _id: 'anonymous',
+                firstName: 'Admin',
+                lastName: 'User',
+                email: 'admin@system.com',
+                role: 'Admin'
+              },
+              adminName: 'Admin User',
+              adminRole: 'Admin',
+              ipAddress: '***.***.***.***',
+              userAgent: 'Anonymous Browser',
+              metadata: {} // Remove sensitive metadata
+            };
+          }
+          // For other activities, show them as-is
+          return activity.toObject();
+        });
       
       // Recalculate total count excluding sensitive actions
       total = await AdminActivity.countDocuments({ 

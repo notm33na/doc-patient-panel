@@ -33,8 +33,10 @@ import {
   formatNotificationDate,
   type Notification
 } from "@/services/notificationService";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function NotificationsScreen() {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +46,9 @@ export default function NotificationsScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedPriority, setSelectedPriority] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("info");
-  const [selectedNotificationCategory, setSelectedNotificationCategory] = useState<string>("system");
+  const [selectedNotificationCategory, setSelectedNotificationCategory] = useState<string>(
+    user?.role === 'Super Admin' ? "system" : "candidates"
+  );
   const [stats, setStats] = useState<any>(null);
   const [userCounts, setUserCounts] = useState({
     total: 0,
@@ -61,6 +65,31 @@ export default function NotificationsScreen() {
     autoDeleteRead: false,
     autoDeleteDays: 7
   });
+
+  // Get filtered category options based on user role
+  const getCategoryOptions = () => {
+    const allCategories = [
+      { value: "system", label: "System Notifications" },
+      { value: "candidates", label: "Candidate Applications" },
+      { value: "suspensions", label: "Doctor Suspensions" },
+      { value: "blacklist", label: "Blacklist Actions" },
+      { value: "doctors", label: "Doctor Management" },
+      { value: "patients", label: "Patient Management" },
+      { value: "security", label: "Security Alerts" },
+      { value: "appointments", label: "Appointments" },
+      { value: "feedback", label: "Feedback" },
+      { value: "reports", label: "Reports" }
+    ];
+
+    // Filter out sensitive categories for regular admins
+    if (user?.role !== 'Super Admin') {
+      return allCategories.filter(category => 
+        !['system', 'security'].includes(category.value)
+      );
+    }
+
+    return allCategories;
+  };
 
   // Load notifications on component mount
   useEffect(() => {
@@ -523,16 +552,11 @@ export default function NotificationsScreen() {
                     value={selectedNotificationCategory}
                     onChange={(e) => setSelectedNotificationCategory(e.target.value)}
                   >
-                    <option value="system">System Notifications</option>
-                    <option value="candidates">Candidate Applications</option>
-                    <option value="suspensions">Doctor Suspensions</option>
-                    <option value="blacklist">Blacklist Actions</option>
-                    <option value="doctors">Doctor Management</option>
-                    <option value="patients">Patient Management</option>
-                    <option value="security">Security Alerts</option>
-                    <option value="appointments">Appointments</option>
-                    <option value="feedback">Feedback</option>
-                    <option value="reports">Reports</option>
+                    {getCategoryOptions().map((category) => (
+                      <option key={category.value} value={category.value}>
+                        {category.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="space-y-2">

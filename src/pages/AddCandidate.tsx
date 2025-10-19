@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import PhoneInput from "@/components/ui/PhoneInput";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +35,10 @@ export default function AddCandidate() {
     lowercase: false,
     number: false,
     special: false
+  });
+  const [phoneValidation, setPhoneValidation] = useState({
+    isValid: false,
+    error: ""
   });
   const [form, setForm] = useState({
     // Basic Information
@@ -75,6 +80,11 @@ export default function AddCandidate() {
       validatePassword(value);
     }
   };
+
+  // Memoize the phone validation callback to prevent infinite re-renders
+  const handlePhoneValidationChange = useCallback((isValid: boolean, error?: string) => {
+    setPhoneValidation({ isValid, error: error || "" });
+  }, []);
 
   const validatePassword = (password: string) => {
     const requirements = {
@@ -176,6 +186,7 @@ export default function AddCandidate() {
     if (!form.DoctorName.trim()) errors.push("Full name is required");
     if (!form.email.trim()) errors.push("Email is required");
     if (!form.phone.trim()) errors.push("Phone number is required");
+    if (!phoneValidation.isValid && form.phone.trim()) errors.push(phoneValidation.error || "Invalid phone number format");
     if (!form.password.trim()) errors.push("Password is required");
     if (passwordError) errors.push(passwordError);
     // Note: specialization is optional, so we don't validate it
@@ -305,12 +316,12 @@ export default function AddCandidate() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Phone Number *</Label>
-                  <Input 
-                    value={form.phone} 
-                    onChange={(e) => handleChange("phone", e.target.value)} 
-                    required 
-                    placeholder="Enter phone number"
+                  <PhoneInput
+                    value={form.phone}
+                    onChange={(value) => handleChange("phone", value)}
+                    onValidationChange={handlePhoneValidationChange}
+                    required
+                    showFormatHint={true}
                   />
                 </div>
                 <div>

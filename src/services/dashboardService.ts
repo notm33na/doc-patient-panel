@@ -95,20 +95,20 @@ const fetchDashboardStatsFallback = async (): Promise<DashboardStats> => {
     console.log('🔄 Dashboard Service: Using fallback method');
     
     // Fetch all data in parallel
-    const [users, doctors, patients] = await Promise.all([
-      fetchUsers(),
+    const [admins, doctors, patients] = await Promise.all([
+      fetchAdmins(),
       fetchDoctors(),
       fetchPatients()
     ]);
 
     console.log('📊 Dashboard Service: Fallback data counts:', {
-      users: users.length,
+      admins: admins.length,
       doctors: doctors.length,
       patients: patients.length
     });
 
     // Calculate totals
-    const totalUsers = users.length;
+    const totalAdmins = admins.length;
     const totalDoctors = doctors.length;
     const totalPatients = patients.length;
     const totalAppointments = 0; // TODO: Implement appointments API
@@ -117,8 +117,8 @@ const fetchDashboardStatsFallback = async (): Promise<DashboardStats> => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const newUsersToday = users.filter(user => 
-      new Date(user.createdAt) >= today
+    const newAdminsToday = admins.filter(admin => 
+      new Date(admin.createdAt) >= today
     ).length;
     
     const newDoctorsToday = doctors.filter(doctor => 
@@ -132,21 +132,21 @@ const fetchDashboardStatsFallback = async (): Promise<DashboardStats> => {
     const newAppointmentsToday = 0; // TODO: Implement appointments API
 
     // Calculate growth percentages (mock calculation for now)
-    const userGrowth = calculateGrowthPercentage(totalUsers, 7); // 7 days ago
+    const adminGrowth = calculateGrowthPercentage(totalAdmins, 7); // 7 days ago
     const doctorGrowth = calculateGrowthPercentage(totalDoctors, 7);
     const patientGrowth = calculateGrowthPercentage(totalPatients, 7);
     const appointmentGrowth = 0; // TODO: Implement appointments API
 
     const result = {
-      totalUsers,
+      totalUsers: totalAdmins, // Map admins to users for compatibility
       totalDoctors,
       totalPatients,
       totalAppointments,
-      newUsersToday,
+      newUsersToday: newAdminsToday, // Map admins to users for compatibility
       newDoctorsToday,
       newPatientsToday,
       newAppointmentsToday,
-      userGrowth,
+      userGrowth: adminGrowth, // Map admin growth to user growth for compatibility
       doctorGrowth,
       patientGrowth,
       appointmentGrowth
@@ -444,16 +444,22 @@ const calculateGrowthPercentage = (current: number, daysAgo: number): number => 
   return Math.round(((current - previous) / previous) * 100);
 };
 
-// Helper function to fetch users (using existing user API)
-const fetchUsers = async () => {
+// Helper function to fetch admins (using existing admin API)
+const fetchAdmins = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/users`);
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/admins`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     return await response.json();
   } catch (error) {
-    console.error('Error fetching users:', error);
+    console.error('Error fetching admins:', error);
     return [];
   }
 };

@@ -120,7 +120,7 @@ export function Sidebar() {
             <Heart className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">FYP</h1>
+            <h1 className="text-xl font-bold text-foreground">Tabeeb</h1>
             <p className="text-xs text-muted-foreground">Admin Dashboard</p>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const pendingDoctorSchema = new mongoose.Schema(
   {
@@ -48,10 +49,30 @@ const pendingDoctorSchema = new mongoose.Schema(
   }
 );
 
-// Update the updatedAt field before saving
-pendingDoctorSchema.pre('save', function(next) {
-  this.updatedAt = new Date();
-  next();
+// Hash password before saving
+pendingDoctorSchema.pre('save', async function(next) {
+  // Only hash the password if it has been modified (or is new)
+  if (!this.isModified('password')) {
+    this.updatedAt = new Date();
+    return next();
+  }
+
+  try {
+    // Check if password is already hashed (starts with $2a$ or $2b$)
+    if (this.password.startsWith('$2a$') || this.password.startsWith('$2b$')) {
+      // Password is already hashed, don't hash again
+      this.updatedAt = new Date();
+      return next();
+    }
+
+    // Generate salt and hash password
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    this.updatedAt = new Date();
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 const PendingDoctor = mongoose.model('PendingDoctor', pendingDoctorSchema, 'Pending_Doctors');

@@ -2,11 +2,24 @@ import nodemailer from 'nodemailer';
 
 // Email configuration
 const createTransporter = () => {
+  // Check if email configuration is available
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.error('❌ Email configuration missing!');
+    console.error('Please set EMAIL_USER and EMAIL_PASS in your .env file');
+    console.error('Current EMAIL_USER:', process.env.EMAIL_USER ? 'Set' : 'Not set');
+    console.error('Current EMAIL_PASS:', process.env.EMAIL_PASS ? 'Set' : 'Not set');
+    throw new Error('Email configuration missing. Please set EMAIL_USER and EMAIL_PASS in .env file');
+  }
+
+  console.log('📧 Email configuration found:');
+  console.log('EMAIL_USER:', process.env.EMAIL_USER);
+  console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? 'Set' : 'Not set');
+
   return nodemailer.createTransport({
     service: 'gmail', // You can change this to other services like 'outlook', 'yahoo', etc.
     auth: {
-      user: process.env.EMAIL_USER || 'your-email@gmail.com',
-      pass: process.env.EMAIL_PASS || 'your-app-password'
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
     }
   });
 };
@@ -48,7 +61,7 @@ export const emailTemplates = {
           </div>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/login" 
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/login" 
                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block;">
               Access Your Dashboard
             </a>
@@ -113,27 +126,321 @@ export const emailTemplates = {
         </div>
       </div>
     `
+  }),
+  
+  deletion: (doctorName, reason = '') => ({
+    subject: 'Account Termination Notice - FYP Medical Platform',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="margin: 0; font-size: 28px;">⚠️ Account Termination</h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Your doctor account has been removed</p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+          <h2 style="color: #333; margin-top: 0;">Dear Dr. ${doctorName},</h2>
+          
+          <p style="color: #555; line-height: 1.6; font-size: 16px;">
+            We are writing to inform you that your doctor account has been <strong style="color: #dc3545;">terminated</strong> 
+            from our medical platform effective immediately.
+          </p>
+          
+          ${reason ? `
+          <div style="background: #f8d7da; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc3545;">
+            <h3 style="color: #721c24; margin-top: 0;">Reason for Termination</h3>
+            <p style="color: #721c24; margin: 0; line-height: 1.6;">${reason}</p>
+          </div>
+          ` : ''}
+          
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #6c757d;">
+            <h3 style="color: #6c757d; margin-top: 0;">What This Means</h3>
+            <ul style="color: #555; line-height: 1.8;">
+              <li>Your access to the platform has been permanently revoked</li>
+              <li>All patient appointments and records are no longer accessible</li>
+              <li>Your profile and credentials have been removed from our system</li>
+              <li>You will not be able to re-register with the same credentials</li>
+            </ul>
+          </div>
+          
+          <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <h3 style="color: #856404; margin-top: 0;">Important Information</h3>
+            <p style="color: #856404; margin: 0; line-height: 1.6;">
+              Your credentials (email, phone, and license numbers) have been blacklisted to prevent 
+              future registrations. If you believe this action was taken in error, please contact 
+              our support team immediately.
+            </p>
+          </div>
+          
+          <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1976d2; margin-top: 0;">Contact Support</h3>
+            <p style="color: #555; margin: 0; line-height: 1.6;">
+              If you have any questions about this termination or believe there has been an error, 
+              please contact our support team as soon as possible. We are committed to fair and 
+              transparent processes.
+            </p>
+          </div>
+          
+          <p style="color: #777; font-size: 14px; text-align: center; margin-top: 30px;">
+            This is an automated notification. Please do not reply to this email.<br>
+            <strong>FYP Medical Platform</strong>
+          </p>
+        </div>
+      </div>
+    `
+  }),
+  
+  adminCreated: (adminName, adminEmail, adminRole, createdBy, password) => ({
+    subject: 'Welcome! Your Admin Account Has Been Created - FYP Medical Platform',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="margin: 0; font-size: 28px;">🎉 Welcome!</h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Your admin account has been created</p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+          <h2 style="color: #333; margin-top: 0;">Dear ${adminName},</h2>
+          
+          <p style="color: #555; line-height: 1.6; font-size: 16px;">
+            Congratulations! Your admin account has been successfully created on the FYP Medical Platform. 
+            You now have administrative access to manage the system.
+          </p>
+          
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+            <h3 style="color: #28a745; margin-top: 0;">Account Details</h3>
+            <ul style="color: #555; line-height: 1.8;">
+              <li><strong>Email:</strong> ${adminEmail}</li>
+              <li><strong>Password:</strong> <span style="background: #f8f9fa; padding: 4px 8px; border-radius: 4px; font-family: monospace; font-weight: bold; color: #dc3545;">${password}</span></li>
+              <li><strong>Role:</strong> ${adminRole}</li>
+              <li><strong>Status:</strong> Active</li>
+              <li><strong>Created By:</strong> ${createdBy}</li>
+            </ul>
+          </div>
+          
+          <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <h3 style="color: #856404; margin-top: 0;">⚠️ Important Security Notice</h3>
+            <p style="color: #856404; margin: 0; line-height: 1.6;">
+              <strong>Please change your password immediately after first login!</strong><br>
+              Your temporary password is provided above. For security reasons, please:
+              <br>• Change your password on first login
+              <br>• Use a strong, unique password
+              <br>• Never share your credentials with others
+              <br>• Log out when finished
+              <br>• Report any suspicious activity immediately
+            </p>
+          </div>
+          
+          <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1976d2; margin-top: 0;">Next Steps</h3>
+            <ul style="color: #555; line-height: 1.8;">
+              <li>Use the email and password above to log in</li>
+              <li><strong>Change your password immediately</strong></li>
+              <li>Complete your profile setup if needed</li>
+              <li>Familiarize yourself with the admin dashboard</li>
+              <li>Review your assigned permissions and responsibilities</li>
+            </ul>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/login" 
+               style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block;">
+              Login to Admin Dashboard
+            </a>
+          </div>
+          
+          <div style="background: #f8d7da; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc3545;">
+            <h3 style="color: #721c24; margin-top: 0;">🔒 Security Reminder</h3>
+            <p style="color: #721c24; margin: 0; line-height: 1.6;">
+              This email contains sensitive login information. Please:
+              <br>• Delete this email after noting your credentials
+              <br>• Do not forward this email to others
+              <br>• Store your new password securely
+            </p>
+          </div>
+          
+          <p style="color: #777; font-size: 14px; text-align: center; margin-top: 30px;">
+            If you have any questions, please contact the system administrator.<br>
+            <strong>FYP Medical Platform</strong>
+          </p>
+        </div>
+      </div>
+    `
+  }),
+  
+  adminDeleted: (adminName, adminEmail, deletedBy, reason = '') => ({
+    subject: 'Admin Account Termination Notice - FYP Medical Platform',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="margin: 0; font-size: 28px;">⚠️ Account Terminated</h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Your admin account has been removed</p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+          <h2 style="color: #333; margin-top: 0;">Dear ${adminName},</h2>
+          
+          <p style="color: #555; line-height: 1.6; font-size: 16px;">
+            We are writing to inform you that your admin account has been <strong style="color: #dc3545;">terminated</strong> 
+            from the FYP Medical Platform effective immediately.
+          </p>
+          
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #6c757d;">
+            <h3 style="color: #6c757d; margin-top: 0;">Account Details</h3>
+            <ul style="color: #555; line-height: 1.8;">
+              <li><strong>Email:</strong> ${adminEmail}</li>
+              <li><strong>Terminated By:</strong> ${deletedBy}</li>
+              <li><strong>Date:</strong> ${new Date().toLocaleDateString()}</li>
+              ${reason ? `<li><strong>Reason:</strong> ${reason}</li>` : ''}
+            </ul>
+          </div>
+          
+          ${reason ? `
+          <div style="background: #f8d7da; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc3545;">
+            <h3 style="color: #721c24; margin-top: 0;">Reason for Termination</h3>
+            <p style="color: #721c24; margin: 0; line-height: 1.6;">${reason}</p>
+          </div>
+          ` : ''}
+          
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #6c757d;">
+            <h3 style="color: #6c757d; margin-top: 0;">What This Means</h3>
+            <ul style="color: #555; line-height: 1.8;">
+              <li>Your admin access has been permanently revoked</li>
+              <li>You can no longer log into the admin dashboard</li>
+              <li>All administrative privileges have been removed</li>
+              <li>Your account data has been deleted from our system</li>
+            </ul>
+          </div>
+          
+          <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1976d2; margin-top: 0;">Contact Information</h3>
+            <p style="color: #555; margin: 0; line-height: 1.6;">
+              If you believe this action was taken in error or have questions about this termination, 
+              please contact the system administrator immediately. We are committed to fair and 
+              transparent administrative processes.
+            </p>
+          </div>
+          
+          <p style="color: #777; font-size: 14px; text-align: center; margin-top: 30px;">
+            This is an automated notification. Please do not reply to this email.<br>
+            <strong>FYP Medical Platform</strong>
+          </p>
+        </div>
+      </div>
+    `
+  }),
+  
+  passwordReset: (adminName, resetLink) => ({
+    subject: 'Password Reset Request - FYP Medical Platform',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="margin: 0; font-size: 28px;">🔐 Password Reset</h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Reset your admin password</p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+          <h2 style="color: #333; margin-top: 0;">Dear ${adminName},</h2>
+          
+          <p style="color: #555; line-height: 1.6; font-size: 16px;">
+            We received a request to reset your admin password for the FYP Medical Platform. 
+            If you made this request, please click the button below to reset your password.
+          </p>
+          
+          <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <h3 style="color: #856404; margin-top: 0;">⚠️ Important Security Notice</h3>
+            <p style="color: #856404; margin: 0; line-height: 1.6;">
+              <strong>This link will expire in 10 minutes for security reasons.</strong><br>
+              If you don't reset your password within this time, you'll need to request a new reset link.
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetLink}" 
+               style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block; font-size: 16px;">
+              Reset My Password
+            </a>
+          </div>
+          
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #6c757d;">
+            <h3 style="color: #6c757d; margin-top: 0;">Security Information</h3>
+            <ul style="color: #555; line-height: 1.8;">
+              <li>This link can only be used once</li>
+              <li>The link expires after 10 minutes</li>
+              <li>If you didn't request this reset, please ignore this email</li>
+              <li>Your current password remains unchanged until you complete the reset</li>
+            </ul>
+          </div>
+          
+          <div style="background: #f8d7da; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc3545;">
+            <h3 style="color: #721c24; margin-top: 0;">🔒 Security Reminder</h3>
+            <p style="color: #721c24; margin: 0; line-height: 1.6;">
+              If you didn't request this password reset, please:
+              <br>• Ignore this email
+              <br>• Check your account for any suspicious activity
+              <br>• Contact support if you have concerns
+              <br>• Consider changing your password manually if you suspect unauthorized access
+            </p>
+          </div>
+          
+          <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1976d2; margin-top: 0;">Need Help?</h3>
+            <p style="color: #555; margin: 0; line-height: 1.6;">
+              If you're having trouble with the reset link or have any questions, 
+              please contact our support team. We're here to help ensure your account security.
+            </p>
+          </div>
+          
+          <p style="color: #777; font-size: 14px; text-align: center; margin-top: 30px;">
+            This is an automated email. Please do not reply to this message.<br>
+            <strong>FYP Medical Platform</strong>
+          </p>
+        </div>
+      </div>
+    `
   })
 };
 
 // Send email function
 export const sendEmail = async (to, template, data = {}) => {
   try {
+    console.log(`📧 Attempting to send ${template} email to: ${to}`);
+    console.log('Email data:', JSON.stringify(data, null, 2));
+    
     const transporter = createTransporter();
-    const emailTemplate = emailTemplates[template](data.candidateName, data.reason);
+    let emailTemplate;
+    
+    // Handle different template types
+    if (template === 'deletion') {
+      emailTemplate = emailTemplates[template](data.doctorName, data.reason);
+    } else if (template === 'adminCreated') {
+      emailTemplate = emailTemplates[template](data.adminName, data.adminEmail, data.adminRole, data.createdBy, data.password);
+    } else if (template === 'adminDeleted') {
+      emailTemplate = emailTemplates[template](data.adminName, data.adminEmail, data.deletedBy, data.reason);
+    } else if (template === 'passwordReset') {
+      emailTemplate = emailTemplates[template](data.adminName, data.resetLink);
+    } else {
+      emailTemplate = emailTemplates[template](data.candidateName, data.reason);
+    }
     
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'noreply@fyp.com',
+      from: process.env.EMAIL_USER,
       to: to,
       subject: emailTemplate.subject,
       html: emailTemplate.html
     };
     
+    console.log('📤 Sending email with options:', {
+      from: mailOptions.from,
+      to: mailOptions.to,
+      subject: mailOptions.subject
+    });
+    
     const result = await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully:', result.messageId);
+    console.log('✅ Email sent successfully:', result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('❌ Error sending email:', error.message);
+    console.error('Full error:', error);
     return { success: false, error: error.message };
   }
 };

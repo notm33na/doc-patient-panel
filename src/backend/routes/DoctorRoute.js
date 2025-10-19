@@ -3,6 +3,8 @@ import Doctor from "../models/Doctor.js";
 import DoctorSuspension from "../models/DoctorSuspension.js";
 import Blacklist from "../models/Blacklist.js";
 import Notification from "../models/Notification.js";
+import { sendEmail } from "../utils/emailService.js";
+import { logAdminActivity, getClientIP, getUserAgent } from "../utils/adminActivityLogger.js";
 
 const router = express.Router();
 
@@ -368,6 +370,23 @@ router.patch("/:id/status", async (req, res) => {
             console.error("Error adding deleted doctor to blacklist:", blacklistError);
           }
           
+          // Send deletion email notification to doctor before deletion
+          try {
+            const emailResult = await sendEmail(doctor.email, 'deletion', {
+              doctorName: doctor.DoctorName,
+              reason: 'Account terminated due to multiple suspensions (6th suspension)'
+            });
+            
+            if (emailResult.success) {
+              console.log('Automatic deletion email sent successfully to:', doctor.email);
+            } else {
+              console.error('Failed to send automatic deletion email:', emailResult.error);
+            }
+          } catch (emailError) {
+            console.error('Error sending automatic deletion email:', emailError);
+            // Don't fail the deletion process if email fails
+          }
+
           await Doctor.findByIdAndDelete(doctorId);
           await DoctorSuspension.deleteMany({ doctorId: doctorId });
           
@@ -431,6 +450,29 @@ router.patch("/:id/status", async (req, res) => {
       }
     }
     
+    // Log doctor status change activity
+    const actionType = status === "suspended" ? "SUSPEND_DOCTOR" : 
+                      status === "approved" ? "UNSUSPEND_DOCTOR" : 
+                      "UPDATE_DOCTOR_STATUS";
+    
+    await logAdminActivity({
+      adminId: req.admin?.id || 'system',
+      adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
+      adminRole: req.admin?.role || 'System',
+      action: actionType,
+      details: `${actionType.replace('_', ' ')} for ${doctor.DoctorName}`,
+      ipAddress: getClientIP(req),
+      userAgent: getUserAgent(req),
+      metadata: {
+        doctorId: doctor._id,
+        doctorName: doctor.DoctorName,
+        doctorEmail: doctor.email,
+        newStatus: status,
+        suspensionData: suspensionData || null,
+        suspensionCount: status === "suspended" ? await DoctorSuspension.countDocuments({ doctorId: doctorId }) : null
+      }
+    });
+
     res.json({
       success: true,
       data: doctor,
@@ -575,6 +617,23 @@ router.delete("/:id", async (req, res) => {
       console.error("Error adding deleted doctor to blacklist:", blacklistError);
     }
     
+    // Send deletion email notification to doctor
+    try {
+      const emailResult = await sendEmail(doctor.email, 'deletion', {
+        doctorName: doctor.DoctorName,
+        reason: req.body.reason || 'Account terminated by administrator'
+      });
+      
+      if (emailResult.success) {
+        console.log('Deletion email sent successfully to:', doctor.email);
+      } else {
+        console.error('Failed to send deletion email:', emailResult.error);
+      }
+    } catch (emailError) {
+      console.error('Error sending deletion email:', emailError);
+      // Don't fail the deletion process if email fails
+    }
+
     await Doctor.findByIdAndDelete(req.params.id);
     console.log("Doctor deleted successfully:", doctor.DoctorName);
     

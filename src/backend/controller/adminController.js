@@ -1,7 +1,10 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Admin from "../models/Admin.js";
+import PasswordResetToken from "../models/PasswordResetToken.js";
 import { logAdminActivity, getClientIP, getUserAgent } from "../utils/adminActivityLogger.js";
+import { sendEmail } from "../utils/emailService.js";
+import { validatePhoneNumber, formatPhoneForStorage } from "../utils/phoneValidation.js";
 
 //JWT Helper
 const generateToken = (id) => {
@@ -11,9 +14,22 @@ const generateToken = (id) => {
 // @desc   Register new admin
 // @route  POST /api/admins/register
 export const registerAdmin = async (req, res) => {
-  const { firstName, lastName, email, password, role, phone, permissions } = req.body;
+  let { firstName, lastName, email, password, role, phone, permissions } = req.body;
 
   try {
+    // Validate phone number
+    if (phone) {
+      const phoneValidation = validatePhoneNumber(phone);
+      if (!phoneValidation.isValid) {
+        return res.status(400).json({ 
+          message: phoneValidation.error,
+          field: "phone"
+        });
+      }
+      // Format phone number for storage
+      phone = phoneValidation.formatted;
+    }
+
     // Check for existing admin by email or phone
     const adminExists = await Admin.findOne({ 
       $or: [
@@ -31,6 +47,18 @@ export const registerAdmin = async (req, res) => {
       }
     }
 
+    // Validate password strength
+    if (!password || password.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters" });
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({ 
+        message: "Password must contain at least 8 characters with uppercase, lowercase, number, and special character" 
+      });
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -46,6 +74,26 @@ export const registerAdmin = async (req, res) => {
       loginAttempts: 0,
       accountLocked: false
     });
+
+    // Send welcome email to new admin
+    try {
+      const emailResult = await sendEmail(admin.email, 'adminCreated', {
+        adminName: `${admin.firstName} ${admin.lastName}`,
+        adminEmail: admin.email,
+        adminRole: admin.role,
+        createdBy: 'System Registration',
+        password: password // Include the unhashed password
+      });
+      
+      if (emailResult.success) {
+        console.log('Admin registration email sent successfully to:', admin.email);
+      } else {
+        console.error('Failed to send admin registration email:', emailResult.error);
+      }
+    } catch (emailError) {
+      console.error('Error sending admin registration email:', emailError);
+      // Don't fail the registration if email fails
+    }
 
     res.status(201).json({
       _id: admin.id,
@@ -155,7 +203,7 @@ export const getAdmins = async (req, res) => {
 // @route  POST /api/admins
 export const addAdmin = async (req, res) => {
   try {
-    const { 
+    let { 
       firstName, 
       lastName, 
       email, 
@@ -167,6 +215,19 @@ export const addAdmin = async (req, res) => {
     } = req.body;
 
     console.log("Incoming Admin Data:", req.body);
+
+    // Validate phone number
+    if (phone) {
+      const phoneValidation = validatePhoneNumber(phone);
+      if (!phoneValidation.isValid) {
+        return res.status(400).json({ 
+          error: phoneValidation.error,
+          field: "phone"
+        });
+      }
+      // Format phone number for storage
+      phone = phoneValidation.formatted;
+    }
 
     // Check for existing admin by email or phone
     const existing = await Admin.findOne({ 
@@ -183,6 +244,18 @@ export const addAdmin = async (req, res) => {
       if (existing.phone === phone) {
         return res.status(400).json({ error: "Phone number already exists" });
       }
+    }
+
+    // Validate password strength
+    if (!password || password.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters" });
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({ 
+        error: "Password must contain at least 8 characters with uppercase, lowercase, number, and special character" 
+      });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -205,6 +278,26 @@ export const addAdmin = async (req, res) => {
     await newAdmin.save();
     
     console.log("Admin saved successfully:", newAdmin);
+
+    // Send welcome email to new admin
+    try {
+      const emailResult = await sendEmail(newAdmin.email, 'adminCreated', {
+        adminName: `${newAdmin.firstName} ${newAdmin.lastName}`,
+        adminEmail: newAdmin.email,
+        adminRole: newAdmin.role,
+        createdBy: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System Administrator',
+        password: password // Include the unhashed password
+      });
+      
+      if (emailResult.success) {
+        console.log('Admin creation email sent successfully to:', newAdmin.email);
+      } else {
+        console.error('Failed to send admin creation email:', emailResult.error);
+      }
+    } catch (emailError) {
+      console.error('Error sending admin creation email:', emailError);
+      // Don't fail the admin creation if email fails
+    }
 
     // Log admin creation activity
     await logAdminActivity({
@@ -239,6 +332,25 @@ export const deleteAdmin = async (req, res) => {
     const adminToDelete = await Admin.findById(id);
     if (!adminToDelete) {
       return res.status(404).json({ error: "Admin not found" });
+    }
+
+    // Send deletion email notification to admin before deletion
+    try {
+      const emailResult = await sendEmail(adminToDelete.email, 'adminDeleted', {
+        adminName: `${adminToDelete.firstName} ${adminToDelete.lastName}`,
+        adminEmail: adminToDelete.email,
+        deletedBy: `${req.admin.firstName} ${req.admin.lastName}`,
+        reason: req.body.reason || 'Account terminated by administrator'
+      });
+      
+      if (emailResult.success) {
+        console.log('Admin deletion email sent successfully to:', adminToDelete.email);
+      } else {
+        console.error('Failed to send admin deletion email:', emailResult.error);
+      }
+    } catch (emailError) {
+      console.error('Error sending admin deletion email:', emailError);
+      // Don't fail the deletion process if email fails
     }
 
     const deleted = await Admin.findByIdAndDelete(id);
@@ -308,6 +420,32 @@ export const updateAdmin = async (req, res) => {
   } catch (err) {
     console.error("Error updating admin:", err);
     res.status(500).json({ error: "Failed to update admin" });
+  }
+};
+
+// @desc   Logout admin
+// @route  POST /api/admins/logout
+export const logoutAdmin = async (req, res) => {
+  try {
+    // Log admin logout activity
+    await logAdminActivity({
+      adminId: req.admin.id,
+      adminName: `${req.admin.firstName} ${req.admin.lastName}`,
+      adminRole: req.admin.role,
+      action: 'LOGOUT',
+      details: 'Admin logged out successfully',
+      ipAddress: getClientIP(req),
+      userAgent: getUserAgent(req),
+      metadata: {
+        logoutTime: new Date(),
+        sessionId: req.admin.id.toString()
+      }
+    });
+
+    res.json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.error("Logout error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -404,8 +542,16 @@ export const changePassword = async (req, res) => {
     }
 
     // Validate new password
-    if (!newPassword || newPassword.length < 6) {
-      return res.status(400).json({ message: "New password must be at least 6 characters" });
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ message: "New password must be at least 8 characters" });
+    }
+
+    // Strong password validation
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({ 
+        message: "Password must contain at least 8 characters with uppercase, lowercase, number, and special character" 
+      });
     }
 
     // Hash new password
@@ -459,5 +605,211 @@ export const checkPhoneExists = async (req, res) => {
   } catch (error) {
     console.error("Check phone error:", error);
     res.status(500).json({ error: "Server error" });
+  }
+};
+
+// @desc   Request password reset
+// @route  POST /api/admins/forgot-password
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    // Normalize email
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check if admin exists
+    const admin = await Admin.findOne({ email: normalizedEmail });
+    if (!admin) {
+      // For security, don't reveal if email exists or not
+      return res.json({ 
+        message: "If an account with that email exists, a password reset link has been sent." 
+      });
+    }
+
+    if (!admin.isActive) {
+      return res.status(400).json({ message: "Account is deactivated" });
+    }
+
+    // Clean up any existing tokens for this admin
+    await PasswordResetToken.deleteMany({ adminId: admin._id });
+
+    // Generate new reset token
+    const resetToken = PasswordResetToken.generateToken();
+    const resetTokenDoc = new PasswordResetToken({
+      adminId: admin._id,
+      token: resetToken,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+    });
+
+    await resetTokenDoc.save();
+
+    // Generate reset link
+    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:8080'}/reset-password?token=${resetToken}`;
+
+    // Send password reset email
+    try {
+      const emailResult = await sendEmail(admin.email, 'passwordReset', {
+        adminName: `${admin.firstName} ${admin.lastName}`,
+        resetLink: resetLink
+      });
+
+      if (emailResult.success) {
+        console.log('Password reset email sent successfully to:', admin.email);
+        
+        // Log password reset request activity
+        await logAdminActivity({
+          adminId: admin._id,
+          adminName: `${admin.firstName} ${admin.lastName}`,
+          adminRole: admin.role,
+          action: 'PASSWORD_RESET_REQUEST',
+          details: 'Password reset requested via email',
+          ipAddress: getClientIP(req),
+          userAgent: getUserAgent(req),
+          metadata: {
+            resetTokenId: resetTokenDoc._id,
+            requestTime: new Date()
+          }
+        });
+
+        res.json({ 
+          message: "If an account with that email exists, a password reset link has been sent." 
+        });
+      } else {
+        console.error('Failed to send password reset email:', emailResult.error);
+        // Clean up the token if email failed
+        await PasswordResetToken.findByIdAndDelete(resetTokenDoc._id);
+        res.status(500).json({ message: "Failed to send reset email. Please try again." });
+      }
+    } catch (emailError) {
+      console.error('Error sending password reset email:', emailError);
+      // Clean up the token if email failed
+      await PasswordResetToken.findByIdAndDelete(resetTokenDoc._id);
+      res.status(500).json({ message: "Failed to send reset email. Please try again." });
+    }
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// @desc   Reset password with token
+// @route  POST /api/admins/reset-password
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: "Token and new password are required" });
+    }
+
+    // Validate new password
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ message: "New password must be at least 8 characters" });
+    }
+
+    // Strong password validation
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({ 
+        message: "Password must contain at least 8 characters with uppercase, lowercase, number, and special character" 
+      });
+    }
+
+    // Find the reset token
+    const resetTokenDoc = await PasswordResetToken.findOne({ token }).populate('adminId');
+    
+    if (!resetTokenDoc) {
+      return res.status(400).json({ message: "Invalid or expired reset token" });
+    }
+
+    // Check if token is valid and not expired
+    if (!resetTokenDoc.isValid()) {
+      await resetTokenDoc.deleteOne();
+      return res.status(400).json({ message: "Invalid or expired reset token" });
+    }
+
+    const admin = resetTokenDoc.adminId;
+    if (!admin) {
+      return res.status(400).json({ message: "Admin not found" });
+    }
+
+    if (!admin.isActive) {
+      return res.status(400).json({ message: "Account is deactivated" });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update admin password
+    admin.password = hashedPassword;
+    admin.lastActivity = new Date();
+    await admin.save();
+
+    // Mark token as used
+    await resetTokenDoc.markAsUsed();
+
+    // Log password reset completion activity
+    await logAdminActivity({
+      adminId: admin._id,
+      adminName: `${admin.firstName} ${admin.lastName}`,
+      adminRole: admin.role,
+      action: 'PASSWORD_RESET_COMPLETE',
+      details: 'Password reset completed successfully',
+      ipAddress: getClientIP(req),
+      userAgent: getUserAgent(req),
+      metadata: {
+        resetTokenId: resetTokenDoc._id,
+        resetTime: new Date()
+      }
+    });
+
+    res.json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// @desc   Verify reset token
+// @route  GET /api/admins/verify-reset-token/:token
+export const verifyResetToken = async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      return res.status(400).json({ message: "Token is required" });
+    }
+
+    // Find the reset token
+    const resetTokenDoc = await PasswordResetToken.findOne({ token }).populate('adminId');
+    
+    if (!resetTokenDoc) {
+      return res.status(400).json({ message: "Invalid reset token" });
+    }
+
+    // Check if token is valid and not expired
+    if (!resetTokenDoc.isValid()) {
+      await resetTokenDoc.deleteOne();
+      return res.status(400).json({ message: "Invalid or expired reset token" });
+    }
+
+    const admin = resetTokenDoc.adminId;
+    if (!admin || !admin.isActive) {
+      return res.status(400).json({ message: "Admin account not found or inactive" });
+    }
+
+    res.json({ 
+      valid: true,
+      adminName: `${admin.firstName} ${admin.lastName}`,
+      expiresAt: resetTokenDoc.expiresAt
+    });
+  } catch (error) {
+    console.error("Verify reset token error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };

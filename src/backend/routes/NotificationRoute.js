@@ -9,10 +9,25 @@ router.get("/", async (req, res) => {
     const { page = 1, limit = 10, category, priority, read } = req.query;
     const skip = (page - 1) * limit;
 
+    // Check if current user is Super Admin
+    const currentUser = req.admin;
+    const isSuperAdmin = currentUser && currentUser.role === 'Super Admin';
+
+    // Define sensitive categories that regular admins shouldn't see
+    const sensitiveCategories = [
+      'security',
+      'system'
+    ];
+
     const query = {};
     if (category) query.category = category;
     if (priority) query.priority = priority;
     if (read !== undefined) query.read = read === 'true';
+
+    // Filter out sensitive categories for regular admins
+    if (!isSuperAdmin) {
+      query.category = { $nin: sensitiveCategories };
+    }
 
     const notifications = await Notification.find(query)
       .sort({ createdAt: -1 })
@@ -230,10 +245,27 @@ router.delete("/:id", async (req, res) => {
 // Get notification statistics
 router.get("/stats", async (req, res) => {
   try {
-    const total = await Notification.countDocuments();
-    const unread = await Notification.countDocuments({ read: false });
+    // Check if current user is Super Admin
+    const currentUser = req.admin;
+    const isSuperAdmin = currentUser && currentUser.role === 'Super Admin';
+
+    // Define sensitive categories that regular admins shouldn't see
+    const sensitiveCategories = [
+      'security',
+      'system'
+    ];
+
+    // Build base query
+    const baseQuery = {};
+    if (!isSuperAdmin) {
+      baseQuery.category = { $nin: sensitiveCategories };
+    }
+
+    const total = await Notification.countDocuments(baseQuery);
+    const unread = await Notification.countDocuments({ ...baseQuery, read: false });
 
     const byCategory = await Notification.aggregate([
+      { $match: baseQuery },
       {
         $group: {
           _id: "$category",
@@ -245,6 +277,7 @@ router.get("/stats", async (req, res) => {
     ]);
 
     const byPriority = await Notification.aggregate([
+      { $match: baseQuery },
       {
         $group: {
           _id: "$priority",
@@ -281,25 +314,36 @@ router.get("/search/:query", async (req, res) => {
     const { page = 1, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
 
+    // Check if current user is Super Admin
+    const currentUser = req.admin;
+    const isSuperAdmin = currentUser && currentUser.role === 'Super Admin';
+
+    // Define sensitive categories that regular admins shouldn't see
+    const sensitiveCategories = [
+      'security',
+      'system'
+    ];
+
     const searchRegex = new RegExp(query, 'i');
-    const notifications = await Notification.find({
+    const searchQuery = {
       $or: [
         { title: searchRegex },
         { message: searchRegex },
         { category: searchRegex }
       ]
-    })
+    };
+
+    // Add role-based filtering
+    if (!isSuperAdmin) {
+      searchQuery.category = { $nin: sensitiveCategories };
+    }
+
+    const notifications = await Notification.find(searchQuery)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
 
-    const total = await Notification.countDocuments({
-      $or: [
-        { title: searchRegex },
-        { message: searchRegex },
-        { category: searchRegex }
-      ]
-    });
+    const total = await Notification.countDocuments(searchQuery);
 
     res.json({
       success: true,

@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import medicalHero from "@/assets/admin-hero.jpg";
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
 
   return (
     <div className="min-h-screen flex">
@@ -24,8 +26,13 @@ export default function Login() {
       {/* Right side - Login/Signup form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md">
-          {isLogin ? (
-            <LoginForm onSwitchToSignup={() => setIsLogin(false)} />
+          {isLogin && !isForgotPassword ? (
+            <LoginForm 
+              onSwitchToSignup={() => setIsLogin(false)} 
+              onSwitchToForgotPassword={() => setIsForgotPassword(true)}
+            />
+          ) : isForgotPassword ? (
+            <ForgotPasswordForm onBackToLogin={() => setIsForgotPassword(false)} />
           ) : (
             <div>
               {/* Replace with your real SignupForm component */}

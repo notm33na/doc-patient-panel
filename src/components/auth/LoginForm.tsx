@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import axios from "axios";
 import { Eye, EyeOff, Mail, Lock, Heart, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/AuthContext";
 
 const loginSchema = z.object({
   email: z
@@ -30,15 +30,17 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 interface LoginFormProps {
   onSwitchToSignup: () => void;
+  onSwitchToForgotPassword: () => void;
 }
 
-export function LoginForm({ onSwitchToSignup }: LoginFormProps) {
+export function LoginForm({ onSwitchToSignup, onSwitchToForgotPassword }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { login, isAuthenticated } = useAuth();
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -66,61 +68,40 @@ export function LoginForm({ onSwitchToSignup }: LoginFormProps) {
     localStorage.removeItem('appearanceSettings');
   }, []);
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const response = await axios.post('http://localhost:5000/api/admins/login', {
-        email: data.email.trim().toLowerCase(),
-        password: data.password,
+      await login(data.email, data.password);
+      
+      // Show success message
+      toast({
+        title: "Welcome back!",
+        description: "You have been successfully logged in.",
       });
-
-      if (response.data.token) {
-        // Store token in localStorage
-        localStorage.setItem('token', response.data.token);
-        
-        // Store user data if needed
-        localStorage.setItem('user', JSON.stringify({
-          id: response.data._id,
-          email: response.data.email,
-          firstName: response.data.firstName,
-          lastName: response.data.lastName,
-          role: response.data.role,
-        }));
-
-        // Show success message
-        toast({
-          title: "Welcome back!",
-          description: `Welcome back, ${response.data.firstName} ${response.data.lastName}`,
-        });
-
-        // Navigate to dashboard
-        navigate('/dashboard');
-      } else {
-        throw new Error('No token received from server');
-      }
     } catch (error: any) {
       console.error('Login error:', error);
       
-      let errorMessage = 'Login failed. Please try again.';
+      let errorMessage = "Login failed. Please try again.";
       
-      if (error.response?.status === 401) {
-        errorMessage = 'Invalid email or password. Please check your credentials.';
-      } else if (error.response?.status === 400) {
-        errorMessage = error.response.data?.message || 'Invalid request. Please check your input.';
-      } else if (error.response?.status === 429) {
-        errorMessage = 'Too many login attempts. Please try again later.';
-      } else if (error.response?.status >= 500) {
-        errorMessage = 'Server error. Please try again later.';
-      } else if (error.code === 'NETWORK_ERROR' || !error.response) {
-        errorMessage = 'Network error. Please check your connection and try again.';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
       }
-
+      
       setError(errorMessage);
       
       toast({
-        title: "Login failed",
+        title: "Login Failed",
         description: errorMessage,
         variant: "destructive",
       });
@@ -232,12 +213,7 @@ export function LoginForm({ onSwitchToSignup }: LoginFormProps) {
                 variant="link" 
                 className="p-0 h-auto text-primary hover:text-primary/80"
                 disabled={isLoading}
-                onClick={() => {
-                  toast({
-                    title: "Forgot Password",
-                    description: "Please contact your system administrator to reset your password.",
-                  });
-                }}
+                onClick={onSwitchToForgotPassword}
               >
                 Forgot password?
               </Button>

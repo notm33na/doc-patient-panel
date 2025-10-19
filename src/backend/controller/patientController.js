@@ -1,6 +1,7 @@
-import bcrypt from "bcryptjs";
 import Patient from "../models/Patient.js";
 import MedicalRecord from "../models/MedicalRecord.js";
+import { validatePhoneNumber, formatPhoneForStorage } from "../utils/phoneValidation.js";
+import { logAdminActivity, getClientIP, getUserAgent } from "../utils/adminActivityLogger.js";
 
 // @desc   Get all patients
 // @route  GET /api/patients
@@ -33,7 +34,7 @@ export const getPatient = async (req, res) => {
 // @route  POST /api/patients
 export const addPatient = async (req, res) => {
   try {
-    const { 
+    let { 
       // Basic Information
       firstName, lastName, emailAddress, phone, password, profileImage, gender, Age,
       // Address
@@ -48,6 +49,19 @@ export const addPatient = async (req, res) => {
 
     console.log("Incoming Patient Data:", req.body);
 
+    // Validate phone number
+    if (phone) {
+      const phoneValidation = validatePhoneNumber(phone);
+      if (!phoneValidation.isValid) {
+        return res.status(400).json({ 
+          error: phoneValidation.error,
+          field: "phone"
+        });
+      }
+      // Format phone number for storage
+      phone = phoneValidation.formatted;
+    }
+
     // Check for existing patient by emailAddress or phone
     const existingByEmail = await Patient.findOne({ emailAddress });
     if (existingByEmail) {
@@ -59,12 +73,7 @@ export const addPatient = async (req, res) => {
       return res.status(400).json({ error: "A user with similar credentials exist" });
     }
 
-    // Hash password if provided
-    let hashedPassword = password;
-    if (password) {
-      const salt = await bcrypt.genSalt(10);
-      hashedPassword = await bcrypt.hash(password, salt);
-    }
+    // Password will be automatically hashed by the model's pre-save middleware
 
     // Prepare patient data (basic information only)
     const patientData = {
@@ -73,7 +82,7 @@ export const addPatient = async (req, res) => {
       lastName: lastName || "",
       emailAddress: emailAddress || "",
       phone: phone || "",
-      password: hashedPassword || "",
+      password: password || "",
       profileImage: profileImage || "",
       gender: gender || "",
       Age: Age || "",
@@ -130,6 +139,24 @@ export const addPatient = async (req, res) => {
     
     console.log("Medical record saved successfully:", newMedicalRecord);
 
+    // Log patient addition activity
+    await logAdminActivity({
+      adminId: req.admin?.id || 'system',
+      adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
+      adminRole: req.admin?.role || 'System',
+      action: 'ADD_PATIENT',
+      details: `Added new patient: ${firstName} ${lastName}`,
+      ipAddress: getClientIP(req),
+      userAgent: getUserAgent(req),
+      metadata: {
+        patientId: newPatient._id,
+        patientName: `${firstName} ${lastName}`,
+        patientEmail: emailAddress,
+        patientPhone: phone,
+        medicalRecordId: newMedicalRecord._id
+      }
+    });
+
     // Return both patient and medical record data
     res.status(201).json({
       patient: newPatient,
@@ -170,6 +197,23 @@ export const updatePatient = async (req, res) => {
       return res.status(404).json({ error: "Patient not found" });
     }
 
+    // Log patient update activity
+    await logAdminActivity({
+      adminId: req.admin?.id || 'system',
+      adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
+      adminRole: req.admin?.role || 'System',
+      action: 'UPDATE_PATIENT',
+      details: `Updated patient: ${updated.firstName} ${updated.lastName}`,
+      ipAddress: getClientIP(req),
+      userAgent: getUserAgent(req),
+      metadata: {
+        patientId: updated._id,
+        patientName: `${updated.firstName} ${updated.lastName}`,
+        patientEmail: updated.emailAddress,
+        updatedFields: Object.keys(req.body)
+      }
+    });
+
     res.json(updated);
   } catch (err) {
     console.error("Error updating patient:", err);
@@ -186,6 +230,23 @@ export const deletePatient = async (req, res) => {
     if (!deleted) {
       return res.status(404).json({ error: "Patient not found" });
     }
+
+    // Log patient deletion activity
+    await logAdminActivity({
+      adminId: req.admin?.id || 'system',
+      adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
+      adminRole: req.admin?.role || 'System',
+      action: 'DELETE_PATIENT',
+      details: `Deleted patient: ${deleted.firstName} ${deleted.lastName}`,
+      ipAddress: getClientIP(req),
+      userAgent: getUserAgent(req),
+      metadata: {
+        patientId: deleted._id,
+        patientName: `${deleted.firstName} ${deleted.lastName}`,
+        patientEmail: deleted.emailAddress,
+        deletedAt: new Date()
+      }
+    });
 
     res.json({ message: "Patient deleted successfully" });
   } catch (err) {

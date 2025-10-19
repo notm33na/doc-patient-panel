@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import PhoneInput from "@/components/ui/PhoneInput";
 import { toast } from "@/hooks/use-toast";
 import { UserPlus, Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react";
 
@@ -16,7 +17,7 @@ const addAdminSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
   lastName: z.string().min(2, "Last name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
-  phone: z.string().min(10, "Phone number must be at least 10 characters"),
+  phone: z.string().min(11, "Phone number must be in format 0xxxxxxxxx").max(11, "Phone number must be in format 0xxxxxxxxx"),
   password: z.string().min(1, "Password is required"),
   role: z.enum(["Admin", "Super Admin"]),
   permissions: z.array(z.string()).optional(),
@@ -171,7 +172,13 @@ export const AddAdminForm = () => {
       };
 
       // POST to backend
-      const res = await axios.post("http://localhost:5000/api/admins", payload);
+      const token = localStorage.getItem('token');
+      const res = await axios.post("http://localhost:5000/api/admins", payload, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
       toast({
         title: "Admin Added Successfully",
@@ -260,14 +267,19 @@ export const AddAdminForm = () => {
 
             <FormField control={form.control} name="phone" render={({ field }) => (
               <FormItem>
-                <FormLabel>Phone Number</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="tel" 
-                    placeholder="Enter phone number" 
-                    {...field}
-                    onChange={(e) => handlePhoneChange(e.target.value)}
-                    className={phoneError ? "border-red-500" : ""}
+                  <PhoneInput
+                    value={field.value}
+                    onChange={field.onChange}
+                    onValidationChange={(isValid, error) => {
+                      if (error) {
+                        setPhoneError(error);
+                      } else {
+                        setPhoneError(null);
+                      }
+                    }}
+                    required
+                    showFormatHint={true}
                   />
                 </FormControl>
                 {phoneError && (
