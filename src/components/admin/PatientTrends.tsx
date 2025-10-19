@@ -1,28 +1,95 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import { Badge } from "@/components/ui/badge";
-
-const patientData = [
-  { month: "Jan", patients: 65 },
-  { month: "Feb", patients: 59 },
-  { month: "Mar", patients: 80 },
-  { month: "Apr", patients: 81 },
-  { month: "May", patients: 56 },
-  { month: "Jun", patients: 55 },
-  { month: "Jul", patients: 75 }
-];
-
-const treatmentData = [
-  { month: "Jan", treatments: 45 },
-  { month: "Feb", treatments: 52 },
-  { month: "Mar", treatments: 48 },
-  { month: "Apr", treatments: 61 },
-  { month: "May", treatments: 55 },
-  { month: "Jun", treatments: 67 },
-  { month: "Jul", treatments: 58 }
-];
+import { Button } from "@/components/ui/button";
+import { Loader2, RefreshCw } from "lucide-react";
+import { fetchPatientTrends, type PatientTrendsData } from "@/services/dashboardService";
 
 export function PatientTrends() {
+  const [trendsData, setTrendsData] = useState<PatientTrendsData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'overall' | 'monthly' | 'day'>('overall');
+
+  useEffect(() => {
+    loadTrendsData();
+  }, []);
+
+  const loadTrendsData = async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    
+    try {
+      setError(null);
+      const data = await fetchPatientTrends();
+      setTrendsData(data);
+    } catch (error) {
+      console.error('Error loading patient trends:', error);
+      setError('Failed to load patient trends data');
+    } finally {
+      setLoading(false);
+      if (isRefresh) {
+        setRefreshing(false);
+      }
+    }
+  };
+
+  const handleRefresh = () => {
+    loadTrendsData(true);
+  };
+
+  if (loading) {
+    return (
+      <div className="grid gap-6 lg:grid-cols-2">
+        {[1, 2].map((i) => (
+          <Card key={i} className="shadow-soft">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="h-4 w-24 bg-muted animate-pulse rounded"></div>
+                <div className="flex gap-2">
+                  <div className="h-6 w-16 bg-muted animate-pulse rounded"></div>
+                  <div className="h-6 w-16 bg-muted animate-pulse rounded"></div>
+                  <div className="h-6 w-12 bg-muted animate-pulse rounded"></div>
+                </div>
+              </div>
+              <div className="h-3 w-32 bg-muted animate-pulse rounded"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[150px] w-full flex items-center justify-center">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span className="text-sm text-muted-foreground">Loading...</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="shadow-soft lg:col-span-2">
+          <CardContent className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <p className="text-destructive mb-2">{error}</p>
+              <Button onClick={handleRefresh} variant="outline" size="sm">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Card className="shadow-soft">
@@ -30,17 +97,45 @@ export function PatientTrends() {
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">New Patient</CardTitle>
             <div className="flex gap-2">
-              <Badge variant="outline" className="text-xs">Overall</Badge>
-              <Badge variant="secondary" className="text-xs">Monthly</Badge>
-              <Badge variant="secondary" className="text-xs">Day</Badge>
+              <Badge 
+                variant={activeTab === 'overall' ? 'outline' : 'secondary'} 
+                className="text-xs cursor-pointer"
+                onClick={() => setActiveTab('overall')}
+              >
+                Overall
+              </Badge>
+              <Badge 
+                variant={activeTab === 'monthly' ? 'outline' : 'secondary'} 
+                className="text-xs cursor-pointer"
+                onClick={() => setActiveTab('monthly')}
+              >
+                Monthly
+              </Badge>
+              <Badge 
+                variant={activeTab === 'day' ? 'outline' : 'secondary'} 
+                className="text-xs cursor-pointer"
+                onClick={() => setActiveTab('day')}
+              >
+                Day
+              </Badge>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">Get Total This Last Month</p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">Get Total This Last Month</p>
+            <Button 
+              onClick={handleRefresh} 
+              variant="ghost" 
+              size="sm"
+              disabled={refreshing}
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="h-[150px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={patientData}>
+              <LineChart data={trendsData}>
                 <XAxis 
                   dataKey="month" 
                   axisLine={false}
@@ -48,6 +143,15 @@ export function PatientTrends() {
                   tick={{ fontSize: 10 }}
                 />
                 <YAxis hide />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '6px',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                  }}
+                  labelStyle={{ color: 'hsl(var(--foreground))' }}
+                />
                 <Line 
                   type="monotone" 
                   dataKey="patients" 
@@ -67,17 +171,45 @@ export function PatientTrends() {
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">Medical Treatment</CardTitle>
             <div className="flex gap-2">
-              <Badge variant="outline" className="text-xs">Overall</Badge>
-              <Badge variant="secondary" className="text-xs">Monthly</Badge>
-              <Badge variant="secondary" className="text-xs">Day</Badge>
+              <Badge 
+                variant={activeTab === 'overall' ? 'outline' : 'secondary'} 
+                className="text-xs cursor-pointer"
+                onClick={() => setActiveTab('overall')}
+              >
+                Overall
+              </Badge>
+              <Badge 
+                variant={activeTab === 'monthly' ? 'outline' : 'secondary'} 
+                className="text-xs cursor-pointer"
+                onClick={() => setActiveTab('monthly')}
+              >
+                Monthly
+              </Badge>
+              <Badge 
+                variant={activeTab === 'day' ? 'outline' : 'secondary'} 
+                className="text-xs cursor-pointer"
+                onClick={() => setActiveTab('day')}
+              >
+                Day
+              </Badge>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">Get Total Treatment Month</p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">Get Total Treatment Month</p>
+            <Button 
+              onClick={handleRefresh} 
+              variant="ghost" 
+              size="sm"
+              disabled={refreshing}
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="h-[150px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={treatmentData}>
+              <LineChart data={trendsData}>
                 <XAxis 
                   dataKey="month" 
                   axisLine={false}
@@ -85,6 +217,15 @@ export function PatientTrends() {
                   tick={{ fontSize: 10 }}
                 />
                 <YAxis hide />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '6px',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                  }}
+                  labelStyle={{ color: 'hsl(var(--foreground))' }}
+                />
                 <Line 
                   type="monotone" 
                   dataKey="treatments" 

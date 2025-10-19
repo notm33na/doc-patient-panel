@@ -1,15 +1,36 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Calendar } from "lucide-react";
+import { Calendar, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function ExportLog() {
+  const navigate = useNavigate();
+
+  const handleGoBack = () => {
+    navigate(-1); // Go back to previous page
+  };
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Export Logs</h1>
-      <p className="text-muted-foreground">
-        Download system activity logs in different formats
-      </p>
+      {/* Header with Back Button */}
+      <div className="flex items-center gap-4">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleGoBack}
+          className="gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold">Export Logs</h1>
+          <p className="text-muted-foreground">
+            Download system activity logs in different formats
+          </p>
+        </div>
+      </div>
 
       <Card className="border shadow-soft">
         <CardHeader>

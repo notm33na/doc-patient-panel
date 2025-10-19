@@ -710,22 +710,53 @@ System: Tabeeb Platform
 git clone <YOUR_GIT_URL>
 
 # Navigate to project directory
-cd tabeeb
+cd doc-patient-panel
 
-# Install dependencies
+# Install frontend dependencies
 npm install
+
+# Install backend dependencies
+cd src/backend
+npm install
+cd ../..
 
 # Start development server
 npm run dev
 ```
 
 ### Environment Variables
-Create a `.env` file with the following:
-```
+
+#### Frontend Environment Variables
+Create a `.env` file in the root directory with the following:
+```env
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_key
 VITE_GOOGLE_MAPS_API_KEY=your_maps_key
 ```
+
+#### Backend Environment Variables
+Create a `.env` file in `src/backend/` directory with the following:
+```env
+# MongoDB Configuration
+MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/database_name?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database_name?retryWrites=true&w=majority
+
+# JWT Secret
+JWT_SECRET=your_super_secret_jwt_key_here_change_this_in_production
+
+# Email Configuration (Gmail SMTP)
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-16-character-app-password
+
+# Frontend URL
+FRONTEND_URL=http://localhost:3000
+
+# Server Port
+PORT=5000
+```
+
+#### Environment Setup Guide
+For detailed setup instructions, see [ENVIRONMENT_SETUP.md](ENVIRONMENT_SETUP.md).
 
 ---
 

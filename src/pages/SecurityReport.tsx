@@ -1,5 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Shield, AlertTriangle, UserX, FileWarning } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Shield, AlertTriangle, UserX, FileWarning, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const stats = [
   { label: "Failed Login Attempts", value: 12, icon: UserX, color: "text-destructive" },
@@ -33,12 +35,32 @@ const dummyReports = [
 ];
 
 export default function SecurityReport() {
+  const navigate = useNavigate();
+
+  const handleGoBack = () => {
+    navigate(-1); // Go back to previous page
+  };
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Security Report</h1>
-      <p className="text-muted-foreground">
-        Review security-related events, failed logins, and critical changes
-      </p>
+      {/* Header with Back Button */}
+      <div className="flex items-center gap-4">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleGoBack}
+          className="gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold">Security Report</h1>
+          <p className="text-muted-foreground">
+            Review security-related events, failed logins, and critical changes
+          </p>
+        </div>
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

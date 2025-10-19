@@ -32,9 +32,11 @@ import GenerateReport from "./pages/GenerateReport";
 import DoctorFeedback from "./pages/DoctorFeedback";
 import EditDoctor from "./pages/EditDoctor";
 import EditPatient from "./pages/EditPatient";
+import AddPatient from "./pages/AddPatient";
 import GenerateReports from "./pages/GenerateReports";
 import Login from "./pages/Login";
 import AdminManagement from "./pages/AdminManagement";
+import BlacklistManagement from "./pages/BlacklistManagement";
 
 const queryClient = new QueryClient();
 
@@ -47,12 +49,14 @@ const App = () => (
         <Routes>
           {/* Login Page */}
           <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
 
           {/* Protected Admin Layout (with Sidebar) */}
           <Route element={<AdminLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/doctors" element={<Doctors />} />
             <Route path="/patients" element={<Patients />} />
+            <Route path="/add-patient" element={<AddPatient />} />
             <Route path="/articles" element={<Articles />} />
             <Route path="/articles/upload" element={<UploadArticle />} />
             <Route path="/suspended" element={<SuspendedUsers />} />
@@ -76,6 +80,7 @@ const App = () => (
             <Route path="/security-report" element={<SecurityReport />} />
             <Route path="/admin-management" element={<AdminManagement />} />
             <Route path="/activity" element={<AdminActivity />} />
+            <Route path="/blacklist" element={<BlacklistManagement />} />
             <Route path="/edit-doctor/:id" element={<EditDoctor />} />
             <Route path="/edit-patient/:id" element={<EditPatient />} />
           </Route>
