@@ -13,6 +13,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import axios from "axios";
+import EmailVerificationDialog from "@/components/EmailVerificationDialog";
+import PasswordChangeDialog from "@/components/PasswordChangeDialog";
 import { 
   User, 
   Shield, 
@@ -41,37 +43,29 @@ const profileSchema = z.object({
   phone: z.string().min(1, "Phone number is required"),
 });
 
-const passwordSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(6, "New password must be at least 6 characters"),
-  confirmPassword: z.string().min(1, "Please confirm your password"),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
-
 type ProfileFormData = z.infer<typeof profileSchema>;
-type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export default function SettingsScreen() {
   const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [passwordLoading, setPasswordLoading] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Email verification dialog state
+  const [showEmailVerification, setShowEmailVerification] = useState(false);
+  const [pendingEmailChange, setPendingEmailChange] = useState<{
+    newEmail: string;
+    currentEmail: string;
+  } | null>(null);
+  
+  // Password change dialog state
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
   
 
   // Form instances
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
-  });
-
-  const passwordForm = useForm<PasswordFormData>({
-    resolver: zodResolver(passwordSchema),
   });
 
   // Fetch current user data
@@ -121,6 +115,16 @@ export default function SettingsScreen() {
         }
       });
 
+      // Check if email verification is required
+      if (response.data.requiresEmailVerification) {
+        setPendingEmailChange({
+          newEmail: response.data.newEmail,
+          currentEmail: response.data.currentEmail
+        });
+        setShowEmailVerification(true);
+        return;
+      }
+
       setCurrentUser(response.data);
       setIsEditing(false);
       
@@ -140,43 +144,39 @@ export default function SettingsScreen() {
     }
   };
 
-  // Handle password change
-  const onPasswordSubmit = async (data: PasswordFormData) => {
-    try {
-      setPasswordLoading(true);
-      setError(null);
-      const token = localStorage.getItem('token');
-      
-      await axios.put('http://localhost:5000/api/admins/change-password', {
-        currentPassword: data.currentPassword,
-        newPassword: data.newPassword,
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+  // Handle email verification success
+  const handleEmailVerificationSuccess = (updatedAdmin: any) => {
+    setCurrentUser(updatedAdmin);
+    setIsEditing(false);
+    setShowEmailVerification(false);
+    setPendingEmailChange(null);
+    
+    // Update form values
+    profileForm.setValue('email', updatedAdmin.email);
+    
+    toast({
+      title: "Email Changed Successfully",
+      description: `Your email has been updated to ${updatedAdmin.email}`,
+    });
+  };
 
-      passwordForm.reset();
-      
-      toast({
-        title: "Password changed successfully",
-        description: "Your password has been updated.",
-      });
-    } catch (error: any) {
-      console.error('Error changing password:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to change password';
-      setError(errorMessage);
-      toast({
-        title: "Password change failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setPasswordLoading(false);
+  // Handle email verification close
+  const handleEmailVerificationClose = () => {
+    setShowEmailVerification(false);
+    setPendingEmailChange(null);
+    // Reset form to current user data
+    if (currentUser) {
+      profileForm.setValue('email', currentUser.email);
     }
   };
 
+  // Handle password change success
+  const handlePasswordChangeSuccess = () => {
+    toast({
+      title: "Password Changed Successfully",
+      description: "Your password has been updated successfully.",
+    });
+  };
 
   // Load user data on component mount
   useEffect(() => {
@@ -310,6 +310,50 @@ export default function SettingsScreen() {
                   </div>
                 </div>
 
+                {/* Password Section */}
+                <div className="space-y-4 border-t pt-6">
+                  <div className="space-y-2">
+                    <Label>Password</Label>
+                    <div className="space-y-4">
+                      {/* Current Password Display */}
+                      <div className="space-y-2">
+                        <Label htmlFor="currentPasswordDisplay">Current Password</Label>
+                        <div className="relative">
+                          <Input 
+                            id="currentPasswordDisplay"
+                            type="password"
+                            value="••••••••••••"
+                            readOnly
+                            className="bg-muted"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            disabled
+                          >
+                            <EyeOff className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Your password is hidden for security reasons
+                        </p>
+                      </div>
+
+                      {/* Change Password Button */}
+                      <Button 
+                        type="button"
+                        onClick={() => setShowPasswordChange(true)}
+                        className="gap-2"
+                      >
+                        <Key className="h-4 w-4" />
+                        Change Password
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label>Role</Label>
                   <Input
@@ -363,106 +407,6 @@ export default function SettingsScreen() {
                     <p className="text-sm text-muted-foreground">Add an extra layer of security to your account</p>
                   </div>
                   <Switch />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Change Password</Label>
-                  <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="currentPassword">Current Password</Label>
-                      <div className="relative">
-                        <Input 
-                          id="currentPassword"
-                          type={showCurrentPassword ? "text" : "password"}
-                          {...passwordForm.register("currentPassword")}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                        >
-                          {showCurrentPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                      {passwordForm.formState.errors.currentPassword && (
-                        <p className="text-sm text-destructive">{passwordForm.formState.errors.currentPassword.message}</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="newPassword">New Password</Label>
-                      <div className="relative">
-                        <Input 
-                          id="newPassword"
-                          type={showNewPassword ? "text" : "password"}
-                          {...passwordForm.register("newPassword")}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() => setShowNewPassword(!showNewPassword)}
-                        >
-                          {showNewPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                      {passwordForm.formState.errors.newPassword && (
-                        <p className="text-sm text-destructive">{passwordForm.formState.errors.newPassword.message}</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                      <div className="relative">
-                        <Input 
-                          id="confirmPassword"
-                          type={showConfirmPassword ? "text" : "password"}
-                          {...passwordForm.register("confirmPassword")}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        >
-                          {showConfirmPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                      {passwordForm.formState.errors.confirmPassword && (
-                        <p className="text-sm text-destructive">{passwordForm.formState.errors.confirmPassword.message}</p>
-                      )}
-                    </div>
-
-                    <Button 
-                      type="submit" 
-                      variant="outline" 
-                      disabled={passwordLoading}
-                      className="gap-2"
-                    >
-                      {passwordLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Key className="h-4 w-4" />
-                      )}
-                      Update Password
-                    </Button>
-                  </form>
                 </div>
 
                 <div className="space-y-2">
@@ -665,6 +609,24 @@ export default function SettingsScreen() {
         </TabsContent>
 
       </Tabs>
+
+      {/* Email Verification Dialog */}
+      {pendingEmailChange && (
+        <EmailVerificationDialog
+          isOpen={showEmailVerification}
+          onClose={handleEmailVerificationClose}
+          onSuccess={handleEmailVerificationSuccess}
+          newEmail={pendingEmailChange.newEmail}
+          currentEmail={pendingEmailChange.currentEmail}
+        />
+      )}
+
+      {/* Password Change Dialog */}
+      <PasswordChangeDialog
+        isOpen={showPasswordChange}
+        onClose={() => setShowPasswordChange(false)}
+        onSuccess={handlePasswordChangeSuccess}
+      />
     </div>
   );
 }

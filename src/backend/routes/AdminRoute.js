@@ -16,6 +16,13 @@ import {
   resetPassword,
   verifyResetToken,
 } from "../controller/adminController.js";
+import {
+  requestEmailVerification,
+  verifyEmailWithOTP,
+  resendEmailVerification,
+  cancelEmailVerification,
+  completeEmailChange,
+} from "../controller/emailVerificationController.js";
 import { protect as authMiddleware } from "../middleware/authmiddleware.js";
 
 const router = express.Router();
@@ -37,5 +44,12 @@ router.get("/check-phone/:phone", checkPhoneExists);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 router.get("/verify-reset-token/:token", verifyResetToken);
+
+// Email verification routes (authentication required)
+router.post("/request-email-verification", authMiddleware, requestEmailVerification);
+router.post("/verify-email", authMiddleware, verifyEmailWithOTP);
+router.post("/resend-email-verification", authMiddleware, resendEmailVerification);
+router.delete("/cancel-email-verification", authMiddleware, cancelEmailVerification);
+router.post("/complete-email-change", authMiddleware, completeEmailChange);
 
 export default router;

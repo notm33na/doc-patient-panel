@@ -397,6 +397,183 @@ export const emailTemplates = {
         </div>
       </div>
     `
+  }),
+  
+  emailVerification: (adminName, otp, currentEmail, newEmail) => ({
+    subject: 'Email Verification OTP - FYP Medical Platform',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="margin: 0; font-size: 28px;">📧 Email Verification</h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Verify your new email address</p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+          <h2 style="color: #333; margin-top: 0;">Dear ${adminName},</h2>
+          
+          <p style="color: #555; line-height: 1.6; font-size: 16px;">
+            You have requested to change your email address from <strong>${currentEmail}</strong> to <strong>${newEmail}</strong>. 
+            To complete this change, please use the verification code below.
+          </p>
+          
+          <div style="background: white; padding: 30px; border-radius: 8px; margin: 20px 0; text-align: center; border: 2px solid #28a745;">
+            <h3 style="color: #28a745; margin-top: 0; font-size: 18px;">Your Verification Code</h3>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 15px 0;">
+              <span style="font-size: 32px; font-weight: bold; color: #28a745; letter-spacing: 5px; font-family: monospace;">${otp}</span>
+            </div>
+            <p style="color: #6c757d; margin: 0; font-size: 14px;">Enter this code in the verification form</p>
+          </div>
+          
+          <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <h3 style="color: #856404; margin-top: 0;">⚠️ Important Security Notice</h3>
+            <p style="color: #856404; margin: 0; line-height: 1.6;">
+              <strong>This verification code will expire in 10 minutes.</strong><br>
+              If you don't verify your email within this time, you'll need to request a new verification code.
+            </p>
+          </div>
+          
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #6c757d;">
+            <h3 style="color: #6c757d; margin-top: 0;">Security Information</h3>
+            <ul style="color: #555; line-height: 1.8;">
+              <li>This code can only be used once</li>
+              <li>The code expires after 10 minutes</li>
+              <li>If you didn't request this change, please ignore this email</li>
+              <li>Your current email remains unchanged until verification is complete</li>
+            </ul>
+          </div>
+          
+          <div style="background: #f8d7da; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc3545;">
+            <h3 style="color: #721c24; margin-top: 0;">🔒 Security Reminder</h3>
+            <p style="color: #721c24; margin: 0; line-height: 1.6;">
+              If you didn't request this email change, please:
+              <br>• Ignore this email
+              <br>• Check your account for any suspicious activity
+              <br>• Contact support if you have concerns
+              <br>• Consider changing your password if you suspect unauthorized access
+            </p>
+          </div>
+          
+          <p style="color: #777; font-size: 14px; text-align: center; margin-top: 30px;">
+            This is an automated email. Please do not reply to this message.<br>
+            <strong>FYP Medical Platform</strong>
+          </p>
+        </div>
+      </div>
+    `
+  }),
+  
+  emailChangeConfirmation: (adminName, newEmail, oldEmail) => ({
+    subject: 'Email Change Confirmed - FYP Medical Platform',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="margin: 0; font-size: 28px;">✅ Email Changed Successfully</h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Your email address has been updated</p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+          <h2 style="color: #333; margin-top: 0;">Dear ${adminName},</h2>
+          
+          <p style="color: #555; line-height: 1.6; font-size: 16px;">
+            Your email address has been successfully changed from <strong>${oldEmail}</strong> to <strong>${newEmail}</strong>.
+          </p>
+          
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+            <h3 style="color: #28a745; margin-top: 0;">Change Summary</h3>
+            <ul style="color: #555; line-height: 1.8;">
+              <li><strong>Old Email:</strong> ${oldEmail}</li>
+              <li><strong>New Email:</strong> ${newEmail}</li>
+              <li><strong>Change Date:</strong> ${new Date().toLocaleDateString()}</li>
+              <li><strong>Status:</strong> <span style="color: #28a745; font-weight: bold;">Confirmed</span></li>
+            </ul>
+          </div>
+          
+          <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1976d2; margin-top: 0;">What's Next?</h3>
+            <ul style="color: #555; line-height: 1.8;">
+              <li>Use your new email address for all future logins</li>
+              <li>Update any saved bookmarks or shortcuts</li>
+              <li>Notify your team members of your new email address</li>
+              <li>Check your spam folder if you don't receive future emails</li>
+            </ul>
+          </div>
+          
+          <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <h3 style="color: #856404; margin-top: 0;">⚠️ Important Notice</h3>
+            <p style="color: #856404; margin: 0; line-height: 1.6;">
+              Your old email address (${oldEmail}) will no longer receive system notifications. 
+              All future communications will be sent to your new email address.
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/login" 
+               style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block;">
+              Login with New Email
+            </a>
+          </div>
+          
+          <p style="color: #777; font-size: 14px; text-align: center; margin-top: 30px;">
+            If you have any questions, please contact our support team.<br>
+            <strong>FYP Medical Platform</strong>
+          </p>
+        </div>
+      </div>
+    `
+  }),
+  
+  emailChangeNotification: (adminName, newEmail, oldEmail) => ({
+    subject: 'Email Address Changed - FYP Medical Platform',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="margin: 0; font-size: 28px;">📧 Email Address Changed</h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Notification of email change</p>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+          <h2 style="color: #333; margin-top: 0;">Dear ${adminName},</h2>
+          
+          <p style="color: #555; line-height: 1.6; font-size: 16px;">
+            This is to notify you that your email address has been changed from <strong>${oldEmail}</strong> to <strong>${newEmail}</strong>.
+          </p>
+          
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #6c757d;">
+            <h3 style="color: #6c757d; margin-top: 0;">Change Details</h3>
+            <ul style="color: #555; line-height: 1.8;">
+              <li><strong>Previous Email:</strong> ${oldEmail}</li>
+              <li><strong>New Email:</strong> ${newEmail}</li>
+              <li><strong>Change Date:</strong> ${new Date().toLocaleDateString()}</li>
+              <li><strong>Change Time:</strong> ${new Date().toLocaleTimeString()}</li>
+            </ul>
+          </div>
+          
+          <div style="background: #f8d7da; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc3545;">
+            <h3 style="color: #721c24; margin-top: 0;">🔒 Security Notice</h3>
+            <p style="color: #721c24; margin: 0; line-height: 1.6;">
+              If you did not make this change, please:
+              <br>• Contact support immediately
+              <br>• Check your account for suspicious activity
+              <br>• Consider changing your password
+              <br>• Review your account security settings
+            </p>
+          </div>
+          
+          <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1976d2; margin-top: 0;">Next Steps</h3>
+            <p style="color: #555; margin: 0; line-height: 1.6;">
+              All future system notifications will be sent to your new email address. 
+              Please update any saved login credentials or bookmarks to use your new email address.
+            </p>
+          </div>
+          
+          <p style="color: #777; font-size: 14px; text-align: center; margin-top: 30px;">
+            This is an automated notification. Please do not reply to this email.<br>
+            <strong>FYP Medical Platform</strong>
+          </p>
+        </div>
+      </div>
+    `
   })
 };
 
@@ -418,6 +595,12 @@ export const sendEmail = async (to, template, data = {}) => {
       emailTemplate = emailTemplates[template](data.adminName, data.adminEmail, data.deletedBy, data.reason);
     } else if (template === 'passwordReset') {
       emailTemplate = emailTemplates[template](data.adminName, data.resetLink);
+    } else if (template === 'emailVerification') {
+      emailTemplate = emailTemplates[template](data.adminName, data.otp, data.currentEmail, data.newEmail);
+    } else if (template === 'emailChangeConfirmation') {
+      emailTemplate = emailTemplates[template](data.adminName, data.newEmail, data.oldEmail);
+    } else if (template === 'emailChangeNotification') {
+      emailTemplate = emailTemplates[template](data.adminName, data.newEmail, data.oldEmail);
     } else {
       emailTemplate = emailTemplates[template](data.candidateName, data.reason);
     }

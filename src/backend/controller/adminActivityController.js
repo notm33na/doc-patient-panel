@@ -275,8 +275,28 @@ export const getAdminActivityStats = async (req, res) => {
       ])
     ]);
 
+    // Get current admin names to filter out historical admins
+    const currentAdmins = await Admin.find({}).select('firstName lastName');
+    const currentAdminNames = currentAdmins.map(admin => `${admin.firstName} ${admin.lastName}`);
+    
+    // Filter activitiesByAdmin to only include current admins
+    const currentAdminActivities = activitiesByAdmin.filter(admin => 
+      currentAdminNames.includes(admin._id)
+    );
+
+    // Create a comprehensive admin list that includes all current admins
+    // even if they don't have activities in the current period
+    const allCurrentAdmins = currentAdmins.map(admin => {
+      const adminName = `${admin.firstName} ${admin.lastName}`;
+      const activityData = currentAdminActivities.find(a => a._id === adminName);
+      return {
+        _id: adminName,
+        count: activityData ? activityData.count : 0
+      };
+    }).sort((a, b) => b.count - a.count);
+
     // Process data based on user role
-    let processedActivitiesByAdmin = activitiesByAdmin;
+    let processedActivitiesByAdmin = allCurrentAdmins;
     let processedRecentActivities = recentActivities;
     let processedTotalActivities = totalActivities;
     let processedAdminStats = adminStats;
@@ -373,7 +393,10 @@ export const getAdminActivityStats = async (req, res) => {
         
         // Insights
         peakHour: peakHour ? { hour: peakHour._id, count: peakHour.count } : null,
-        mostActiveAdmin: mostActiveAdmin ? { name: mostActiveAdmin._id, count: mostActiveAdmin.count } : null,
+        mostActiveAdmin: processedActivitiesByAdmin.length > 0 ? { 
+          name: processedActivitiesByAdmin[0]._id, 
+          count: processedActivitiesByAdmin[0].count 
+        } : null,
         mostCommonAction: mostCommonAction ? { action: mostCommonAction._id, count: mostCommonAction.count } : null,
         
         // Login analytics

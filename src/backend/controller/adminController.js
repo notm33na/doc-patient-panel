@@ -475,26 +475,32 @@ export const updateMe = async (req, res) => {
 
     const { firstName, lastName, email, phone, profileImage } = req.body;
     
-    // Validate email format
-    if (email) {
+    // Check if email is being changed
+    if (email && email.toLowerCase() !== admin.email.toLowerCase()) {
+      // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         return res.status(400).json({ message: "Invalid email format" });
       }
-    }
-    
-    // Check if email is being changed and if it already exists
-    if (email && email !== admin.email) {
-      const existingAdmin = await Admin.findOne({ email });
+      
+      // Check if new email already exists
+      const existingAdmin = await Admin.findOne({ email: email.toLowerCase() });
       if (existingAdmin) {
         return res.status(400).json({ message: "Email already exists" });
       }
+      
+      // Return response indicating OTP verification is required
+      return res.status(200).json({ 
+        message: "Email change requires OTP verification",
+        requiresEmailVerification: true,
+        newEmail: email,
+        currentEmail: admin.email
+      });
     }
 
-    // Update fields
+    // Update non-email fields
     admin.firstName = firstName || admin.firstName;
     admin.lastName = lastName || admin.lastName;
-    admin.email = email || admin.email;
     admin.phone = phone || admin.phone;
     admin.profileImage = profileImage || admin.profileImage;
     admin.lastActivity = new Date();
@@ -507,11 +513,11 @@ export const updateMe = async (req, res) => {
       adminName: `${req.admin.firstName} ${req.admin.lastName}`,
       adminRole: req.admin.role,
       action: 'UPDATE_ADMIN',
-      details: 'Updated profile information',
+      details: 'Updated profile information (non-email fields)',
       ipAddress: getClientIP(req),
       userAgent: getUserAgent(req),
       metadata: {
-        updatedFields: Object.keys(req.body)
+        updatedFields: Object.keys(req.body).filter(field => field !== 'email')
       }
     });
 

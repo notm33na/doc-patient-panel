@@ -331,10 +331,19 @@ export const updatePatient = async (req, res) => {
 export const deletePatient = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await Patient.findByIdAndDelete(id);
-    if (!deleted) {
+    
+    // Find the patient first to get their information
+    const patient = await Patient.findById(id);
+    if (!patient) {
       return res.status(404).json({ error: "Patient not found" });
     }
+
+    // Delete all medical records associated with this patient
+    const medicalRecordsDeleted = await MedicalRecord.deleteMany({ patientId: id });
+    console.log(`Deleted ${medicalRecordsDeleted.deletedCount} medical records for patient ${patient.firstName} ${patient.lastName}`);
+
+    // Delete the patient
+    const deleted = await Patient.findByIdAndDelete(id);
 
     // Log patient deletion activity
     await logAdminActivity({
@@ -342,18 +351,22 @@ export const deletePatient = async (req, res) => {
       adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
       adminRole: req.admin?.role || 'System',
       action: 'DELETE_PATIENT',
-      details: `Deleted patient: ${deleted.firstName} ${deleted.lastName}`,
+      details: `Deleted patient: ${deleted.firstName} ${deleted.lastName} and ${medicalRecordsDeleted.deletedCount} medical records`,
       ipAddress: getClientIP(req),
       userAgent: getUserAgent(req),
       metadata: {
         patientId: deleted._id,
         patientName: `${deleted.firstName} ${deleted.lastName}`,
         patientEmail: deleted.emailAddress,
+        medicalRecordsDeleted: medicalRecordsDeleted.deletedCount,
         deletedAt: new Date()
       }
     });
 
-    res.json({ message: "Patient deleted successfully" });
+    res.json({ 
+      message: "Patient deleted successfully",
+      medicalRecordsDeleted: medicalRecordsDeleted.deletedCount
+    });
   } catch (err) {
     console.error("Error deleting patient:", err);
     res.status(500).json({ error: "Failed to delete patient" });
