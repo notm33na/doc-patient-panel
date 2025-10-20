@@ -135,7 +135,16 @@ export const updatePatient = async (id: string, patientData: Partial<Patient>): 
     });
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch {
+        // If response is not JSON, use the default error message
+      }
+      throw new Error(errorMessage);
     }
     
     const patient = await response.json();

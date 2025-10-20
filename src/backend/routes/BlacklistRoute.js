@@ -1,6 +1,7 @@
 import express from "express";
 import Blacklist from "../models/Blacklist.js";
 import Notification from "../models/Notification.js";
+import { logAdminActivity, getClientIP, getUserAgent } from "../utils/adminActivityLogger.js";
 
 const router = express.Router();
 
@@ -21,6 +22,23 @@ router.get("/", async (req, res) => {
       .populate('createdBy', 'name email');
 
     const total = await Blacklist.countDocuments(query);
+
+    // Log blacklist viewing activity
+    await logAdminActivity({
+      adminId: req.admin?.id || 'system',
+      adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
+      adminRole: req.admin?.role || 'System',
+      action: 'VIEW_BLACKLIST',
+      details: 'Viewed blacklist entries',
+      ipAddress: getClientIP(req),
+      userAgent: getUserAgent(req),
+      metadata: {
+        page,
+        limit,
+        total,
+        filter: { reason, isActive }
+      }
+    });
 
     res.json({
       success: true,
@@ -143,6 +161,25 @@ router.post("/", async (req, res) => {
 
     await notification.save();
 
+    // Log admin activity
+    await logAdminActivity({
+      adminId: req.admin?.id || 'system',
+      adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
+      adminRole: req.admin?.role || 'System',
+      action: 'ADD_BLACKLIST',
+      details: `Added blacklist entry for ${blacklistData.originalEntityName || 'Unknown'} (${blacklistData.reason})`,
+      ipAddress: getClientIP(req),
+      userAgent: getUserAgent(req),
+      metadata: {
+        blacklistId: newBlacklistEntry._id,
+        reason: blacklistData.reason,
+        originalEntityType: blacklistData.originalEntityType,
+        originalEntityName: blacklistData.originalEntityName,
+        email: blacklistData.email,
+        phone: blacklistData.phone
+      }
+    });
+
     res.status(201).json({
       success: true,
       data: newBlacklistEntry,
@@ -193,6 +230,22 @@ router.patch("/:id", async (req, res) => {
 
     await notification.save();
 
+    // Log admin activity
+    await logAdminActivity({
+      adminId: req.admin?.id || 'system',
+      adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
+      adminRole: req.admin?.role || 'System',
+      action: 'UPDATE_BLACKLIST',
+      details: `Updated blacklist entry for ${updatedEntry.originalEntityName || 'Unknown'}`,
+      ipAddress: getClientIP(req),
+      userAgent: getUserAgent(req),
+      metadata: {
+        blacklistId: updatedEntry._id,
+        originalEntityName: updatedEntry.originalEntityName,
+        updatedFields: Object.keys(updateData)
+      }
+    });
+
     res.json({
       success: true,
       data: updatedEntry,
@@ -241,6 +294,22 @@ router.delete("/:id", async (req, res) => {
 
       await notification.save();
 
+      // Log admin activity
+      await logAdminActivity({
+        adminId: req.admin?.id || 'system',
+        adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
+        adminRole: req.admin?.role || 'System',
+        action: 'DELETE_BLACKLIST',
+        details: `Permanently deleted blacklist entry for ${deletedEntry.originalEntityName || 'Unknown'}`,
+        ipAddress: getClientIP(req),
+        userAgent: getUserAgent(req),
+        metadata: {
+          blacklistId: deletedEntry._id,
+          originalEntityName: deletedEntry.originalEntityName,
+          deletionType: 'permanent'
+        }
+      });
+
       res.json({
         success: true,
         message: "Blacklist entry permanently deleted",
@@ -276,6 +345,22 @@ router.delete("/:id", async (req, res) => {
       });
 
       await notification.save();
+
+      // Log admin activity
+      await logAdminActivity({
+        adminId: req.admin?.id || 'system',
+        adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
+        adminRole: req.admin?.role || 'System',
+        action: 'DELETE_BLACKLIST',
+        details: `Deactivated blacklist entry for ${deactivatedEntry.originalEntityName || 'Unknown'}`,
+        ipAddress: getClientIP(req),
+        userAgent: getUserAgent(req),
+        metadata: {
+          blacklistId: deactivatedEntry._id,
+          originalEntityName: deactivatedEntry.originalEntityName,
+          deletionType: 'deactivation'
+        }
+      });
 
       res.json({
         success: true,

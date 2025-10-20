@@ -1,5 +1,6 @@
 import express from "express";
 import Notification from "../models/Notification.js";
+import { logAdminActivity, getClientIP, getUserAgent } from "../utils/adminActivityLogger.js";
 
 const router = express.Router();
 
@@ -35,6 +36,23 @@ router.get("/", async (req, res) => {
       .limit(parseInt(limit));
 
     const total = await Notification.countDocuments(query);
+
+    // Log notification viewing activity
+    await logAdminActivity({
+      adminId: req.admin?.id || 'system',
+      adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
+      adminRole: req.admin?.role || 'System',
+      action: 'VIEW_NOTIFICATIONS',
+      details: 'Viewed notifications list',
+      ipAddress: getClientIP(req),
+      userAgent: getUserAgent(req),
+      metadata: {
+        page,
+        limit,
+        total,
+        filter: { category, priority, read }
+      }
+    });
 
     res.json({
       success: true,

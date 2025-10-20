@@ -40,8 +40,13 @@ patientSchema.pre('save', async function(next) {
 
   try {
     // Check if password is already hashed (starts with $2a$ or $2b$)
-    if (this.password.startsWith('$2a$') || this.password.startsWith('$2b$')) {
+    if (this.password && (this.password.startsWith('$2a$') || this.password.startsWith('$2b$'))) {
       // Password is already hashed, don't hash again
+      return next();
+    }
+
+    // Skip hashing for empty passwords or anonymized passwords
+    if (!this.password || this.password === 'anonymous_password') {
       return next();
     }
 
@@ -50,6 +55,7 @@ patientSchema.pre('save', async function(next) {
     this.password = await bcrypt.hash(this.password, salt);
     next();
   } catch (error) {
+    console.error('Password hashing error:', error);
     next(error);
   }
 });

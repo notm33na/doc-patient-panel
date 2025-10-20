@@ -30,6 +30,7 @@ const adminActivitySchema = new mongoose.Schema(
         'UNSUSPEND_DOCTOR',
         'ADD_PATIENT',
         'UPDATE_PATIENT',
+        'ANONYMIZE_PATIENT',
         'DELETE_PATIENT',
         'ADD_BLACKLIST',
         'UPDATE_BLACKLIST',
@@ -38,7 +39,15 @@ const adminActivitySchema = new mongoose.Schema(
         'UPDATE_SETTINGS',
         'VIEW_DASHBOARD',
         'EXPORT_DATA',
-        'SYSTEM_MAINTENANCE'
+        'SYSTEM_MAINTENANCE',
+        'PASSWORD_RESET_REQUEST',
+        'PASSWORD_RESET_COMPLETE',
+        'VIEW_ADMIN_ACTIVITIES',
+        'VIEW_STATISTICS',
+        'VIEW_BLACKLIST',
+        'VIEW_DOCTORS',
+        'VIEW_PATIENTS',
+        'VIEW_NOTIFICATIONS'
       ]
     },
     details: { 

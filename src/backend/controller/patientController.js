@@ -1,5 +1,6 @@
 import Patient from "../models/Patient.js";
 import MedicalRecord from "../models/MedicalRecord.js";
+import bcrypt from "bcryptjs";
 import { validatePhoneNumber, formatPhoneForStorage } from "../utils/phoneValidation.js";
 import { logAdminActivity, getClientIP, getUserAgent } from "../utils/adminActivityLogger.js";
 
@@ -8,6 +9,22 @@ import { logAdminActivity, getClientIP, getUserAgent } from "../utils/adminActiv
 export const getPatients = async (req, res) => {
   try {
     const patients = await Patient.find().sort({ createdAt: -1 });
+    
+    // Log patient viewing activity
+    await logAdminActivity({
+      adminId: req.admin?.id || 'system',
+      adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
+      adminRole: req.admin?.role || 'System',
+      action: 'VIEW_PATIENTS',
+      details: 'Viewed patients list',
+      ipAddress: getClientIP(req),
+      userAgent: getUserAgent(req),
+      metadata: {
+        patientCount: patients.length,
+        viewType: 'all_patients'
+      }
+    });
+    
     res.json(patients);
   } catch (err) {
     console.error("Error fetching patients:", err);
@@ -185,38 +202,126 @@ export const addPatient = async (req, res) => {
 export const updatePatient = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log(`Updating patient ${id} with data:`, req.body);
     
-    // If password is being updated, hash it
-    if (req.body.password) {
-      const salt = await bcrypt.genSalt(10);
-      req.body.password = await bcrypt.hash(req.body.password, salt);
-    }
-    
-    const updated = await Patient.findByIdAndUpdate(id, req.body, { new: true });
-    if (!updated) {
-      return res.status(404).json({ error: "Patient not found" });
-    }
-
-    // Log patient update activity
-    await logAdminActivity({
-      adminId: req.admin?.id || 'system',
-      adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
-      adminRole: req.admin?.role || 'System',
-      action: 'UPDATE_PATIENT',
-      details: `Updated patient: ${updated.firstName} ${updated.lastName}`,
-      ipAddress: getClientIP(req),
-      userAgent: getUserAgent(req),
-      metadata: {
-        patientId: updated._id,
-        patientName: `${updated.firstName} ${updated.lastName}`,
-        patientEmail: updated.emailAddress,
-        updatedFields: Object.keys(req.body)
+    // Handle anonymization case - avoid unique constraint violations
+    if (req.body.firstName === "Anonymous" && req.body.lastName === "Patient") {
+      console.log('Processing anonymization request');
+      // For anonymization, we need to handle unique constraints carefully
+      const anonymizedData = { ...req.body };
+      
+      // Generate unique email and phone for anonymized patients
+      const timestamp = Date.now();
+      anonymizedData.emailAddress = `anonymous_${id}_${timestamp}@example.com`;
+      anonymizedData.phone = `000-000-${timestamp.toString().slice(-4)}`;
+      
+      console.log('Generated anonymized data:', {
+        email: anonymizedData.emailAddress,
+        phone: anonymizedData.phone,
+        firstName: anonymizedData.firstName,
+        lastName: anonymizedData.lastName
+      });
+      
+      // Don't hash password if it's already the anonymized password
+      if (anonymizedData.password === "anonymous_password") {
+        // Use a simple hash for anonymized passwords
+        const salt = await bcrypt.genSalt(10);
+        anonymizedData.password = await bcrypt.hash("anonymous_password", salt);
+        console.log('Hashed anonymized password');
+      } else if (anonymizedData.password && !anonymizedData.password.startsWith('$2a$') && !anonymizedData.password.startsWith('$2b$')) {
+        // Only hash if it's not already hashed
+        const salt = await bcrypt.genSalt(10);
+        anonymizedData.password = await bcrypt.hash(anonymizedData.password, salt);
+        console.log('Hashed provided password');
       }
-    });
+      
+      console.log('Attempting to update patient in database...');
+      const updated = await Patient.findByIdAndUpdate(id, anonymizedData, { new: true });
+      if (!updated) {
+        console.log('Patient not found for anonymization');
+        return res.status(404).json({ error: "Patient not found" });
+      }
 
-    res.json(updated);
+      console.log('✅ Patient successfully anonymized:', {
+        id: updated._id,
+        name: `${updated.firstName} ${updated.lastName}`,
+        email: updated.emailAddress,
+        phone: updated.phone
+      });
+
+      // Log anonymization activity (don't let logging errors affect the main operation)
+      try {
+        await logAdminActivity({
+          adminId: req.admin?.id || 'system',
+          adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
+          adminRole: req.admin?.role || 'System',
+          action: 'ANONYMIZE_PATIENT',
+          details: `Anonymized patient data for ID: ${id}`,
+          ipAddress: getClientIP(req),
+          userAgent: getUserAgent(req),
+          metadata: {
+            patientId: updated._id,
+            anonymizedAt: new Date(),
+            originalEmail: req.body.emailAddress || 'unknown',
+            anonymizedEmail: updated.emailAddress
+          }
+        });
+      } catch (logError) {
+        console.error('Failed to log anonymization activity:', logError);
+        // Don't fail the main operation if logging fails
+      }
+
+      res.json(updated);
+    } else {
+      // Regular update
+      // If password is being updated, hash it
+      if (req.body.password && !req.body.password.startsWith('$2a$') && !req.body.password.startsWith('$2b$')) {
+        const salt = await bcrypt.genSalt(10);
+        req.body.password = await bcrypt.hash(req.body.password, salt);
+      }
+      
+      const updated = await Patient.findByIdAndUpdate(id, req.body, { new: true });
+      if (!updated) {
+        return res.status(404).json({ error: "Patient not found" });
+      }
+
+      // Log patient update activity (don't let logging errors affect the main operation)
+      try {
+        await logAdminActivity({
+          adminId: req.admin?.id || 'system',
+          adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
+          adminRole: req.admin?.role || 'System',
+          action: 'UPDATE_PATIENT',
+          details: `Updated patient: ${updated.firstName} ${updated.lastName}`,
+          ipAddress: getClientIP(req),
+          userAgent: getUserAgent(req),
+          metadata: {
+            patientId: updated._id,
+            patientName: `${updated.firstName} ${updated.lastName}`,
+            patientEmail: updated.emailAddress,
+            updatedFields: Object.keys(req.body)
+          }
+        });
+      } catch (logError) {
+        console.error('Failed to log update activity:', logError);
+        // Don't fail the main operation if logging fails
+      }
+
+      res.json(updated);
+    }
   } catch (err) {
     console.error("Error updating patient:", err);
+    
+    // Handle MongoDB unique constraint errors
+    if (err.code === 11000) {
+      if (err.keyPattern?.emailAddress) {
+        return res.status(400).json({ error: "Email address already exists" });
+      }
+      if (err.keyPattern?.phone) {
+        return res.status(400).json({ error: "Phone number already exists" });
+      }
+    }
+    
     res.status(500).json({ error: "Failed to update patient" });
   }
 };

@@ -3,6 +3,7 @@ import Admin from "../models/Admin.js";
 import Doctor from "../models/Doctor.js";
 import Patient from "../models/Patient.js";
 import AdminActivity from "../models/AdminActivity.js";
+import { logAdminActivity, getClientIP, getUserAgent } from "../utils/adminActivityLogger.js";
 
 // @desc   Get dashboard statistics
 // @route  GET /api/stats/dashboard
@@ -161,6 +162,23 @@ export const getDashboardStats = async (req, res) => {
         })),
         activityStats,
         dailyStats
+      }
+    });
+
+    // Log dashboard view activity
+    await logAdminActivity({
+      adminId: req.admin?.id || 'system',
+      adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
+      adminRole: req.admin?.role || 'System',
+      action: 'VIEW_DASHBOARD',
+      details: 'Viewed dashboard statistics',
+      ipAddress: getClientIP(req),
+      userAgent: getUserAgent(req),
+      metadata: {
+        statsType: 'dashboard',
+        totalDoctors,
+        totalPatients,
+        totalAdmins
       }
     });
   } catch (error) {

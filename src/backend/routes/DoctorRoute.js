@@ -12,6 +12,22 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const doctors = await Doctor.find({ status: "approved" }).select("-password");
+    
+    // Log doctor viewing activity
+    await logAdminActivity({
+      adminId: req.admin?.id || 'system',
+      adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
+      adminRole: req.admin?.role || 'System',
+      action: 'VIEW_DOCTORS',
+      details: 'Viewed doctors list',
+      ipAddress: getClientIP(req),
+      userAgent: getUserAgent(req),
+      metadata: {
+        doctorCount: doctors.length,
+        viewType: 'approved_doctors'
+      }
+    });
+    
     res.json({
       success: true,
       data: doctors,

@@ -246,8 +246,9 @@ export default function Patients() {
       const anonymizedData = {
         firstName: "Anonymous",
         lastName: "Patient",
-        emailAddress: `anonymous_${patient._id}@example.com`,
-        phone: "000-000-0000",
+        // Let the backend generate unique email and phone to avoid conflicts
+        emailAddress: "", // Will be set by backend
+        phone: "", // Will be set by backend
         isActive: false, // Make anonymized patients permanently inactive
         // Keep medical data: gender, Age, weight, height, medications, allergies, chronicConditions, vaccinations, notes
       } as Partial<Patient>;
@@ -260,6 +261,9 @@ export default function Patients() {
       console.log("Anonymizing patient with data:", anonymizedData);
       const updatedPatient = await updatePatient(patient._id, anonymizedData);
       console.log("Updated patient:", updatedPatient);
+      
+      // Show success message
+      console.log(`✅ Successfully anonymized patient: ${patient.firstName} ${patient.lastName}`);
       
       // Refresh the patients list
       await loadPatients();

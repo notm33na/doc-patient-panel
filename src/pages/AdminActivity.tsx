@@ -52,10 +52,37 @@ interface AdminActivity {
 }
 
 interface ActivityStats {
+  period: string;
+  periodStart: string;
+  periodEnd: string;
   totalActivities: number;
+  totalActivitiesAllTime: number;
+  criticalActions: number;
+  growthRate: number;
+  averageActivitiesPerDay: number;
   activitiesByAction: Array<{ _id: string; count: number }>;
   activitiesByAdmin: Array<{ _id: string; count: number }>;
+  activitiesByDay: Array<{ _id: string; count: number }>;
+  activitiesByHour: Array<{ _id: number; count: number }>;
   recentActivities: AdminActivity[];
+  peakHour: { hour: number; count: number } | null;
+  mostActiveAdmin: { name: string; count: number } | null;
+  mostCommonAction: { action: string; count: number } | null;
+  loginStats: Array<{ _id: string; count: number }>;
+  adminStats: Array<{
+    _id: string;
+    adminName: string;
+    adminRole: string;
+    totalActions: number;
+    lastActivity: string;
+    uniqueActions: string[];
+  }>;
+  securityMetrics: {
+    totalLogins: number;
+    totalLogouts: number;
+    failedLogins: number;
+    suspiciousActivities: number;
+  };
 }
 
 const activityTypes = [
@@ -92,6 +119,8 @@ export default function AdminActivity() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [lastStatsUpdate, setLastStatsUpdate] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchCurrentUser();
@@ -105,6 +134,17 @@ export default function AdminActivity() {
       }
     }
   }, [currentPage, typeFilter, adminFilter, currentUser]);
+
+  // Auto-refresh stats every 30 seconds for Super Admins
+  useEffect(() => {
+    if (currentUser?.role === 'Super Admin') {
+      const interval = setInterval(() => {
+        fetchStats();
+      }, 30000); // Refresh every 30 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [currentUser]);
 
   const fetchCurrentUser = async () => {
     try {
@@ -191,6 +231,7 @@ export default function AdminActivity() {
 
   const fetchStats = async () => {
     try {
+      setStatsLoading(true);
       const token = localStorage.getItem('token');
       
       if (!token) {
@@ -198,14 +239,24 @@ export default function AdminActivity() {
         return;
       }
       
+      console.log('🔄 Fetching real-time stats...');
       const response = await axios.get('http://localhost:5000/api/admin-activities/stats?period=7d', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
+      
       if (response.data.success) {
+        console.log('✅ Stats fetched successfully:', {
+          totalActivities: response.data.data.totalActivities,
+          criticalActions: response.data.data.criticalActions,
+          activeAdmins: response.data.data.activitiesByAdmin?.length || 0
+        });
         setStats(response.data.data);
+        setLastStatsUpdate(new Date());
+      } else {
+        console.error('❌ Stats API returned unsuccessful response:', response.data);
       }
     } catch (error: any) {
       console.error("Error fetching stats:", error);
@@ -220,6 +271,8 @@ export default function AdminActivity() {
       }
       // Set null stats to prevent issues
       setStats(null);
+    } finally {
+      setStatsLoading(false);
     }
   };
 
@@ -288,20 +341,23 @@ export default function AdminActivity() {
   };
 
   const getActionBadgeColor = (action: string) => {
-    switch(action) {
-      case "LOGIN":
-      case "APPROVE_DOCTOR":
-      case "UNSUSPEND_DOCTOR":
-        return "bg-success/10 text-success";
-      case "SUSPEND_DOCTOR":
-      case "REJECT_DOCTOR":
-        return "bg-warning/10 text-warning";
-      case "DELETE_ADMIN":
-      case "DELETE_PATIENT":
-      case "DELETE_BLACKLIST":
-        return "bg-destructive/10 text-destructive";
-      default: return "bg-primary/10 text-primary";
+    // Add actions - Green (check this first to catch UNSUSPEND)
+    if (action.includes('ADD') || action.includes('CREATE') || action.includes('APPROVE') || action.includes('UNSUSPEND')) {
+      return "bg-green-100 text-green-800 border-green-200";
     }
+    
+    // Suspend actions - Orange
+    if (action.includes('SUSPEND') || action.includes('REJECT')) {
+      return "bg-orange-100 text-orange-800 border-orange-200";
+    }
+    
+    // Delete actions - Red
+    if (action.includes('DELETE')) {
+      return "bg-red-100 text-red-800 border-red-200";
+    }
+    
+    // Default actions - Blue
+    return "bg-blue-100 text-blue-800 border-blue-200";
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -351,57 +407,123 @@ export default function AdminActivity() {
       </div>
 
       {/* Activity Stats - Only visible to Super Admins */}
-      {stats && currentUser?.role === 'Super Admin' && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="border border-border shadow-soft">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Activities</p>
-                  <p className="text-2xl font-bold text-foreground">{stats.totalActivities}</p>
+      {currentUser?.role === 'Super Admin' && (
+        <>
+          {!stats ? (
+            <div className="space-y-6">
+              <Card className="border border-border shadow-soft">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-center h-32">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <span className="ml-3 text-muted-foreground">Loading statistics...</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+        <div className="space-y-6">
+          {/* Stats Header with Refresh Button */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Activity Statistics</h2>
+              <p className="text-sm text-muted-foreground">
+                Real-time admin activity metrics (Last 7 days)
+                {lastStatsUpdate && (
+                  <span className="ml-2 text-xs text-green-600">
+                    • Updated {lastStatsUpdate.toLocaleTimeString()}
+                  </span>
+                )}
+              </p>
+            </div>
+            <Button 
+              onClick={fetchStats} 
+              disabled={statsLoading}
+              variant="outline" 
+              size="sm"
+              className="gap-2"
+            >
+              {statsLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <Activity className="h-4 w-4" />
+                  Refresh Stats
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Core Metrics - Primary Focus */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Total Activities */}
+            <Card className="border border-border shadow-soft bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Activities</p>
+                    <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">
+                      {(stats.totalActivities || 0).toLocaleString()}
+                    </p>
+                    <p className="text-xs text-blue-500 dark:text-blue-300 mt-1">
+                      Last 7 days • {(stats.growthRate || 0) > 0 ? '+' : ''}{stats.growthRate || 0}% vs previous
+                    </p>
+                  </div>
+                  <div className="p-3 bg-blue-500 rounded-full">
+                    <Activity className="h-6 w-6 text-white" />
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border border-border shadow-soft">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-success" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Last 7 Days</p>
-                  <p className="text-2xl font-bold text-foreground">{stats.totalActivities}</p>
+              </CardContent>
+            </Card>
+
+            {/* Active Admins */}
+            <Card className="border border-border shadow-soft bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-green-600 dark:text-green-400">Active Admins</p>
+                    <p className="text-3xl font-bold text-green-900 dark:text-green-100">
+                      {stats.activitiesByAdmin?.length || 0}
+                    </p>
+                    <p className="text-xs text-green-500 dark:text-green-300 mt-1">
+                      Most active: {stats.mostActiveAdmin?.name || 'N/A'}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-green-500 rounded-full">
+                    <User className="h-6 w-6 text-white" />
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border border-border shadow-soft">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-warning" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Active Admins</p>
-                  <p className="text-2xl font-bold text-foreground">{stats.activitiesByAdmin.length}</p>
+              </CardContent>
+            </Card>
+
+            {/* Critical Actions */}
+            <Card className="border border-border shadow-soft bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-red-600 dark:text-red-400">Critical Actions</p>
+                    <p className="text-3xl font-bold text-red-900 dark:text-red-100">
+                      {stats.criticalActions || 0}
+                    </p>
+                    <p className="text-xs text-red-500 dark:text-red-300 mt-1">
+                      Security events requiring attention
+                    </p>
+                  </div>
+                  <div className="p-3 bg-red-500 rounded-full">
+                    <Shield className="h-6 w-6 text-white" />
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border border-border shadow-soft">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-destructive" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Critical Actions</p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {stats.activitiesByAction.filter(a => 
-                      ['SUSPEND_DOCTOR', 'REJECT_DOCTOR', 'DELETE_ADMIN', 'DELETE_PATIENT'].includes(a._id)
-                    ).reduce((sum, a) => sum + a.count, 0)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
+
+
+
         </div>
+          )}
+        </>
       )}
 
       {/* Filters */}

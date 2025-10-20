@@ -1,5 +1,6 @@
 import AdminActivity from "../models/AdminActivity.js";
 import Admin from "../models/Admin.js";
+import { logAdminActivity, getClientIP, getUserAgent } from "../utils/adminActivityLogger.js";
 
 // @desc   Get all admin activities
 // @route  GET /api/admin-activities
@@ -94,6 +95,22 @@ export const getAdminActivities = async (req, res) => {
         }
       }
     });
+
+    // Log admin activity viewing
+    await logAdminActivity({
+      adminId: req.admin?.id || 'system',
+      adminName: req.admin ? `${req.admin.firstName} ${req.admin.lastName}` : 'System',
+      adminRole: req.admin?.role || 'System',
+      action: 'VIEW_ADMIN_ACTIVITIES',
+      details: 'Viewed admin activities list',
+      ipAddress: getClientIP(req),
+      userAgent: getUserAgent(req),
+      metadata: {
+        page,
+        limit,
+        filter: { adminId, action, startDate, endDate }
+      }
+    });
   } catch (error) {
     console.error("Error fetching admin activities:", error);
     res.status(500).json({
@@ -124,6 +141,9 @@ export const getAdminActivityStats = async (req, res) => {
       case '30d':
         startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         break;
+      case '90d':
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
       default:
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     }
@@ -149,35 +169,117 @@ export const getAdminActivityStats = async (req, res) => {
       action: { $nin: sensitiveActions } 
     };
 
-    // Get activity statistics
+    // Get comprehensive activity statistics
     const [
       totalActivities,
+      totalActivitiesAllTime,
       activitiesByAction,
       activitiesByAdmin,
-      recentActivities
+      activitiesByDay,
+      activitiesByHour,
+      recentActivities,
+      criticalActions,
+      loginStats,
+      adminStats
     ] = await Promise.all([
+      // Total activities in period
       AdminActivity.countDocuments(filteredFilter),
+      
+      // Total activities all time
+      AdminActivity.countDocuments(isSuperAdmin ? {} : { action: { $nin: sensitiveActions } }),
+      
+      // Activities by action type
       AdminActivity.aggregate([
         { $match: filteredFilter },
         { $group: { _id: '$action', count: { $sum: 1 } } },
-        { $sort: { count: -1 } }
+        { $sort: { count: -1 } },
+        { $limit: 20 }
       ]),
+      
+      // Activities by admin
       AdminActivity.aggregate([
         { $match: filteredFilter },
         { $group: { _id: '$adminName', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 10 }
       ]),
+      
+      // Activities by day (for chart)
+      AdminActivity.aggregate([
+        { $match: filteredFilter },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+            },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+      
+      // Activities by hour (for peak hours analysis)
+      AdminActivity.aggregate([
+        { $match: filteredFilter },
+        {
+          $group: {
+            _id: { $hour: "$createdAt" },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+      
+      // Recent activities
       AdminActivity.find(filteredFilter)
         .populate('adminId', 'firstName lastName email role')
         .sort({ createdAt: -1 })
-        .limit(10)
+        .limit(10),
+      
+      // Critical actions count
+      AdminActivity.countDocuments({
+        ...filteredFilter,
+        action: { $in: ['SUSPEND_DOCTOR', 'REJECT_DOCTOR', 'DELETE_ADMIN', 'DELETE_PATIENT', 'ADD_BLACKLIST'] }
+      }),
+      
+      // Login statistics
+      AdminActivity.aggregate([
+        { $match: { ...filteredFilter, action: 'LOGIN' } },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+            },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: -1 } },
+        { $limit: 7 }
+      ]),
+      
+      // Admin activity stats
+      AdminActivity.aggregate([
+        { $match: filteredFilter },
+        {
+          $group: {
+            _id: '$adminId',
+            adminName: { $first: '$adminName' },
+            adminRole: { $first: '$adminRole' },
+            totalActions: { $sum: 1 },
+            lastActivity: { $max: '$createdAt' },
+            uniqueActions: { $addToSet: '$action' }
+          }
+        },
+        { $sort: { totalActions: -1 } },
+        { $limit: 10 }
+      ])
     ]);
 
     // Process data based on user role
     let processedActivitiesByAdmin = activitiesByAdmin;
     let processedRecentActivities = recentActivities;
     let processedTotalActivities = totalActivities;
+    let processedAdminStats = adminStats;
 
     if (!isSuperAdmin) {
       // For regular admins: filter out sensitive actions and anonymize data
@@ -214,6 +316,14 @@ export const getAdminActivityStats = async (req, res) => {
         count: item.count
       }));
 
+      // Anonymize admin stats
+      processedAdminStats = adminStats.map(stat => ({
+        ...stat,
+        _id: 'anonymous',
+        adminName: 'Admin User',
+        adminRole: 'Admin'
+      }));
+
       // Recalculate total activities excluding sensitive actions
       processedTotalActivities = await AdminActivity.countDocuments({ 
         createdAt: { $gte: startDate },
@@ -221,14 +331,64 @@ export const getAdminActivityStats = async (req, res) => {
       });
     }
 
+    // Calculate additional metrics
+    const averageActivitiesPerDay = processedTotalActivities / Math.max(1, Math.ceil((now - startDate) / (24 * 60 * 60 * 1000)));
+    const peakHour = activitiesByHour.length > 0 ? activitiesByHour.reduce((max, hour) => hour.count > max.count ? hour : max) : null;
+    const mostActiveAdmin = processedActivitiesByAdmin.length > 0 ? processedActivitiesByAdmin[0] : null;
+    const mostCommonAction = activitiesByAction.length > 0 ? activitiesByAction[0] : null;
+
+    // Calculate growth metrics (compare with previous period)
+    const previousPeriodStart = new Date(startDate.getTime() - (now.getTime() - startDate.getTime()));
+    const previousPeriodActivities = await AdminActivity.countDocuments({
+      ...filteredFilter,
+      createdAt: { $gte: previousPeriodStart, $lt: startDate }
+    });
+    
+    const growthRate = previousPeriodActivities > 0 
+      ? ((processedTotalActivities - previousPeriodActivities) / previousPeriodActivities * 100)
+      : 0;
+
     res.json({
       success: true,
       data: {
         period,
+        periodStart: startDate,
+        periodEnd: now,
+        
+        // Core metrics
         totalActivities: processedTotalActivities,
+        totalActivitiesAllTime,
+        criticalActions,
+        
+        // Growth metrics
+        growthRate: Math.round(growthRate * 100) / 100,
+        averageActivitiesPerDay: Math.round(averageActivitiesPerDay * 100) / 100,
+        
+        // Breakdowns
         activitiesByAction,
         activitiesByAdmin: processedActivitiesByAdmin,
-        recentActivities: processedRecentActivities
+        activitiesByDay,
+        activitiesByHour,
+        recentActivities: processedRecentActivities,
+        
+        // Insights
+        peakHour: peakHour ? { hour: peakHour._id, count: peakHour.count } : null,
+        mostActiveAdmin: mostActiveAdmin ? { name: mostActiveAdmin._id, count: mostActiveAdmin.count } : null,
+        mostCommonAction: mostCommonAction ? { action: mostCommonAction._id, count: mostCommonAction.count } : null,
+        
+        // Login analytics
+        loginStats,
+        
+        // Admin performance
+        adminStats: processedAdminStats,
+        
+        // Security metrics
+        securityMetrics: {
+          totalLogins: activitiesByAction.find(a => a._id === 'LOGIN')?.count || 0,
+          totalLogouts: activitiesByAction.find(a => a._id === 'LOGOUT')?.count || 0,
+          failedLogins: 0, // Could be implemented with failed login tracking
+          suspiciousActivities: criticalActions
+        }
       }
     });
   } catch (error) {
